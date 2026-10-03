@@ -116,6 +116,9 @@ export type LifeLine = {
   role: string | null;
 };
 
+/** Someone a person was linked to, how (a pair like "tea master and lord", or their role in a shared event), when, and the source. */
+export type Connection = { person: Person; kind: string; year: number; text: string; sourceUrl: string };
+
 export type PersonDetail = {
   person: Person;
   about: string | null;
@@ -126,6 +129,8 @@ export type PersonDetail = {
   world: WorldAround | null;
   worldMoment: MomentSummary | null;
   lifeline: LifeLine[];
+  /** Sourced links to other people: curated ones first, then shared documented events. */
+  connections: Connection[];
   aroundPeople: Person[];
   aroundLives: Life[];
   elsewhere: Person[];

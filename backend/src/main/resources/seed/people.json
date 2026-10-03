@@ -25,6 +25,7 @@
   { "name": "Georges Bizet", "born": 1838, "died": 1875, "region": "FR", "domain": "ARTS", "occupation": "composer", "bio": "Carmen premiered in 1875 to a cool reception; he died three months later." },
   { "name": "Paul Cézanne", "born": 1839, "died": 1906, "region": "FR", "domain": "ARTS", "occupation": "painter", "bio": "Exhibited with the Impressionists in 1874, then withdrew to Provence." },
   { "name": "Émile Zola", "born": 1840, "died": 1902, "region": "FR", "domain": "ARTS", "occupation": "novelist", "bio": "Building the twenty-novel Rougon-Macquart cycle through the 1870s and 80s." },
+  { "name": "Édouard Manet", "born": 1832, "died": 1883, "region": "FR", "domain": "ARTS", "occupation": "painter" },
   { "name": "Claude Monet", "born": 1840, "died": 1926, "region": "FR", "domain": "ARTS", "occupation": "painter" },
   { "name": "Auguste Rodin", "born": 1840, "died": 1917, "region": "FR", "domain": "ARTS", "occupation": "sculptor" },
   { "name": "Georges Clemenceau", "born": 1841, "died": 1929, "region": "FR", "domain": "POWER", "occupation": "statesman, journalist", "bio": "A physician turned politician, he spent the 1870s as a fierce critic of the government from the far left." },

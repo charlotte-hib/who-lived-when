@@ -55,7 +55,7 @@ export function DetailPanel({ open, onOpenChange, onOpenChangeComplete, kicker, 
                 <X />
               </Drawer.Close>
             </header>
-            <Drawer.Content className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-2 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+            <Drawer.Content data-panel-scroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-2 pb-[calc(2rem+env(safe-area-inset-bottom))]">
               {children}
             </Drawer.Content>
           </Drawer.Popup>
