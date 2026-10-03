@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Connections } from "@/components/connections";
 import { DoorCard } from "@/components/door-card";
 import { LifeInTime } from "@/components/life-in-time";
 import { LifeChip } from "@/components/life";
@@ -25,6 +26,12 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
       <main className="mx-auto grid w-full max-w-3xl gap-10 px-4 py-10">
         <PersonHeader detail={detail} />
         <PersonAbout detail={detail} />
+
+        {detail.connections.length > 0 && (
+          <Section title="Connected to">
+            <Connections connections={detail.connections} />
+          </Section>
+        )}
 
         {detail.world && detail.worldMoment && (
           <Section title={`The world around them · ${detail.worldMoment.place}, ${detail.worldMoment.period}`}>

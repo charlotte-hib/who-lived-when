@@ -64,6 +64,18 @@ class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
     }
 
     @Test
+    fun `a person's connections are curated links first, then shared events, in order of year`() {
+        mockMvc.get("/api/people/emile-zola").andExpect {
+            status { isOk() }
+            jsonPath("$.connections[0].person.slug") { value("paul-cezanne") }
+            jsonPath("$.connections[0].kind") { value("school friends") }
+            jsonPath("$.connections.length()") { value(4) }
+            jsonPath("$.connections[3].person.slug") { value("georges-clemenceau") }
+            jsonPath("$.connections[3].kind") { value("chose the headline") }
+        }
+    }
+
+    @Test
     fun `an era only lists people from its own region`() {
         mockMvc.get("/api/eras/jp-meiji-era").andExpect {
             status { isOk() }

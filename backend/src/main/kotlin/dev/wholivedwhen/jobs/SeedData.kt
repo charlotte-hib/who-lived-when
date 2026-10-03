@@ -9,6 +9,7 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.readValue
 import dev.wholivedwhen.domain.Artwork
 import dev.wholivedwhen.domain.CardType
+import dev.wholivedwhen.domain.Connection
 import dev.wholivedwhen.domain.Domain
 import dev.wholivedwhen.domain.Door
 import dev.wholivedwhen.domain.Era
@@ -20,6 +21,7 @@ import dev.wholivedwhen.domain.PublicationStatus
 import dev.wholivedwhen.domain.Region
 import dev.wholivedwhen.domain.StoryCard
 import dev.wholivedwhen.domain.WorldAround
+import dev.wholivedwhen.repository.ConnectionRepository
 import dev.wholivedwhen.repository.EraRepository
 import dev.wholivedwhen.repository.EventRepository
 import dev.wholivedwhen.repository.LifeRepository
@@ -42,6 +44,7 @@ class SeedData(
     private val lives: LifeRepository,
     private val events: EventRepository,
     private val moments: MomentRepository,
+    private val connections: ConnectionRepository,
     private val jsonMapper: JsonMapper,
 ) : CommandLineRunner {
 
@@ -94,6 +97,17 @@ class SeedData(
                 event.participants.forEach { participant(peopleBySlug.getValue(it.person), it.role) }
             }
         }).associateBy { it.id }
+
+        connections.saveAll(read<SeedConnection>("connections").map {
+            Connection(
+                first = peopleBySlug.getValue(it.people[0]),
+                second = peopleBySlug.getValue(it.people[1]),
+                kind = it.kind,
+                year = it.year,
+                text = it.text,
+                sourceUrl = it.source,
+            )
+        })
 
         val seedMoments = read<SeedMoment>("moments")
         val momentsById = moments.saveAll(seedMoments.map { seed ->
@@ -178,6 +192,13 @@ private data class SeedEvent(
     val source: String,
     val participants: List<SeedParticipant> = emptyList(),
 )
+
+/** Two people by slug, how they were linked, when, and the source. */
+private data class SeedConnection(val people: List<String>, val kind: String, val year: Int, val text: String, val source: String) {
+    init {
+        require(people.size == 2 && people[0] != people[1]) { "A connection links two different people: $people" }
+    }
+}
 
 private data class SeedArt(val url: String, val credit: String, val source: String) {
     fun toArtwork() = Artwork(url, credit, source)

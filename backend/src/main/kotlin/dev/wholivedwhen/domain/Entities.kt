@@ -98,6 +98,25 @@ class EventParticipant(
     val role: String,
 )
 
+/**
+ * How two people knew each other, in one sourced sentence: friends, rivals, a portrait, a commission.
+ * Stored once per pair; [year] is when the link is documented.
+ */
+@Entity
+class Connection(
+    @Id @GeneratedValue val id: Long? = null,
+    @ManyToOne(fetch = FetchType.LAZY) val first: Person,
+    @ManyToOne(fetch = FetchType.LAZY) val second: Person,
+    /** A few words, e.g. "school friends". */
+    val kind: String,
+    @Column(name = "connection_year") val year: Int,
+    @Column(length = LONG_TEXT) val text: String,
+    @Column(length = LONG_TEXT) val sourceUrl: String,
+) {
+    /** The person on the other side of the link from [person]. */
+    fun other(person: Person) = if (first.slug == person.slug) second else first
+}
+
 /** Draft content comes from the drafting job and is only served once a curator publishes it. */
 enum class PublicationStatus { DRAFT, PUBLISHED }
 

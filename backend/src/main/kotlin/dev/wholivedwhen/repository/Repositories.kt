@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import java.util.Optional
 import dev.wholivedwhen.domain.CardType
+import dev.wholivedwhen.domain.Connection
 import dev.wholivedwhen.domain.Door
 import dev.wholivedwhen.domain.Era
 import dev.wholivedwhen.domain.Event
@@ -82,6 +83,12 @@ interface EventRepository : JpaRepository<Event, String> {
 
     @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
     fun findDistinctByParticipantsPersonSlugOrderByYear(slug: String): List<Event>
+}
+
+interface ConnectionRepository : JpaRepository<Connection, Long> {
+    @EntityGraph(attributePaths = ["first", "first.region", "second", "second.region"])
+    @Query("select c from Connection c where c.first.slug = :slug or c.second.slug = :slug order by c.year")
+    fun findInvolving(slug: String): List<Connection>
 }
 
 interface MomentRepository : JpaRepository<Moment, String> {

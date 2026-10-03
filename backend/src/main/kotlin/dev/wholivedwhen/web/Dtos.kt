@@ -125,6 +125,15 @@ enum class LifeLineKind { BIRTH, ERA, EVENT, OWN_EVENT, DEATH }
 /** One line of "their life in their time": a dated change around them, with their age. */
 data class LifeLineDto(val year: Int, val age: Int?, val kind: LifeLineKind, val text: String, val role: String?)
 
+/** Someone a person was linked to, how (a pair like "tea master and lord", or their role in a shared event), and when. */
+data class ConnectionDto(
+    val person: PersonDto,
+    val kind: String,
+    val year: Int,
+    val text: String,
+    val sourceUrl: String,
+)
+
 data class PersonDetailDto(
     val person: PersonDto,
     val about: String?,
@@ -135,6 +144,8 @@ data class PersonDetailDto(
     val world: WorldAroundDto?,
     val worldMoment: MomentSummaryDto?,
     val lifeline: List<LifeLineDto>,
+    /** Sourced links to other people: curated ones first, then shared documented events. */
+    val connections: List<ConnectionDto>,
     val aroundPeople: List<PersonDto>,
     val aroundLives: List<LifeDto>,
     val elsewhere: List<PersonDto>,
