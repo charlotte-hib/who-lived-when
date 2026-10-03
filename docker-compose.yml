@@ -1,13 +1,16 @@
 # Caddy (HTTPS) -> frontend (Next.js) -> backend (Spring Boot, never published).
-# Run or update: docker compose up -d --build
+# Locally: docker compose up --build. In production, deploy/deploy.sh sets the images to
+# the digests the pipeline built and signed (in .env), so the VPS never builds anything.
 
 services:
   backend:
+    image: ${BACKEND_IMAGE:-who-lived-when-backend}
     build: ./backend
     restart: unless-stopped
     mem_limit: 768m
 
   frontend:
+    image: ${FRONTEND_IMAGE:-who-lived-when-frontend}
     build:
       context: ./frontend
       args:
