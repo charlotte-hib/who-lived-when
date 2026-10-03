@@ -1,4 +1,4 @@
-import type { Person, SearchResults } from "@/lib/types";
+import type { EraDetail, Person, SearchResults } from "@/lib/types";
 
 /**
  * Browser-side fetches, for data that changes while the user interacts.
@@ -13,6 +13,8 @@ async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
 /** A few people alive in [year] in every region except [region]. */
 export const fetchAliveElsewhere = (region: string, year: number, signal?: AbortSignal) =>
   get<Person[]>(`/api/years/${year}/people?exclude=${region}`, signal);
+
+export const fetchEra = (id: string, signal?: AbortSignal) => get<EraDetail>(`/api/eras/${encodeURIComponent(id)}`, signal);
 
 export const fetchSearch = (query: string, signal?: AbortSignal) =>
   get<SearchResults>(`/api/search?q=${encodeURIComponent(query)}`, signal);

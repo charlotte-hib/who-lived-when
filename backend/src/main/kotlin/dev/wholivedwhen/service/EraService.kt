@@ -17,6 +17,7 @@ class EraService(
     private val eras: EraRepository,
     private val people: PersonRepository,
     private val events: EventRepository,
+    private val moments: MomentService,
     private val mapper: ApiMapper,
 ) {
     fun list(): List<EraDto> = eras.findAllByOrderByStartYear().map(mapper::toDto)
@@ -31,6 +32,7 @@ class EraService(
                 .map(mapper::toDto)
                 .groupBy { it.domain },
             events = events.findByEraIdOrderByYear(id).map(mapper::toDto),
+            moments = moments.overlapping(era.region.code, era.startYear, era.endYear),
         )
     }
 }

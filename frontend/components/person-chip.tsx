@@ -2,14 +2,14 @@ import Link from "next/link";
 import { PersonAvatar } from "@/components/person-avatar";
 import type { Person } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ageLabel } from "@/lib/years";
+import { ageLabel, formatLifespan } from "@/lib/years";
 
 export const chipClass = "inline-flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm whitespace-nowrap";
 
 type PersonChipProps = {
   person: Person;
-  /** The year their age is shown for; also the year their page opens on. */
-  year: number;
+  /** The year their age is shown for; also the year their page opens on. Without one, the chip shows their lifespan. */
+  year?: number;
   /** Add the place after the age, for people from elsewhere. */
   showPlace?: boolean;
   /** Replace the current history entry instead of adding one, e.g. when moving from person to person in a panel. */
@@ -18,11 +18,11 @@ type PersonChipProps = {
 
 export function PersonChip({ person, year, showPlace, replace }: PersonChipProps) {
   return (
-    <Link href={`/person/${person.slug}?year=${year}`} replace={replace} title={person.occupation} className={cn(chipClass, "hover:border-lamp")}>
+    <Link href={year === undefined ? `/person/${person.slug}` : `/person/${person.slug}?year=${year}`} replace={replace} title={person.occupation} className={cn(chipClass, "hover:border-lamp")}>
       <PersonAvatar person={person} className="size-7" />
       {person.name}
       <span className="font-mono text-xs text-muted-foreground tabular-nums">
-        {ageLabel(person, year)}
+        {year === undefined ? formatLifespan(person.birthYear, person.deathYear) : ageLabel(person, year)}
         {showPlace && ` · ${person.region}`}
       </span>
     </Link>

@@ -71,4 +71,12 @@ class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
             jsonPath("$.people.ARTS[?(@.slug == 'claude-monet')]") { doesNotExist() }
         }
     }
+
+    @Test
+    fun `an era lists the moments set under it`() {
+        mockMvc.get("/api/eras/jp-meiji-era").andExpect {
+            jsonPath("$.moments.length()") { value(1) }
+            jsonPath("$.moments[0].id") { value("tokyo-1870s") }
+        }
+    }
 }
