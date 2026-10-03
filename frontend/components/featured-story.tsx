@@ -44,14 +44,19 @@ export function FeaturedStory({ stories, initialIndex }: Props) {
 
         <ul className="mt-6 flex flex-wrap gap-4">
           {story.cast.map((person) => (
-            <li key={person.slug} className="flex items-center gap-2 text-sm">
-              <PersonAvatar person={person} className="size-9" />
-              <span>
-                {person.name}
-                <span className="block text-xs text-muted-foreground tabular-nums">
-                  {ageText(person, story.focusYear)} in {formatYear(story.focusYear)}
+            <li key={person.slug}>
+              <Link
+                href={`/person/${person.slug}?year=${story.focusYear}`}
+                className="group -m-1.5 flex items-center gap-2 rounded-full p-1.5 pr-3 text-sm hover:bg-black/30"
+              >
+                <PersonAvatar person={person} className="size-9" />
+                <span>
+                  <span className="group-hover:underline">{person.name}</span>
+                  <span className="block text-xs text-muted-foreground tabular-nums">
+                    {ageText(person, story.focusYear)} in {formatYear(story.focusYear)}
+                  </span>
                 </span>
-              </span>
+              </Link>
             </li>
           ))}
         </ul>
