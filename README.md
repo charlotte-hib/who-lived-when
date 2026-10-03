@@ -1,5 +1,9 @@
 # Who Lived When
 
+[![CI/CD](https://github.com/charlotte-hib/who-lived-when/actions/workflows/ci.yml/badge.svg)](https://github.com/charlotte-hib/who-lived-when/actions/workflows/ci.yml)
+
+Live at https://wholivedwhen.charlottehibert.com
+
 A history app you step into. Pick a moment (one place over a few years, like Paris in the 1870s or Kyoto in the 1590s), watch its story told card by card over a painting of the period, then meet everyone who lived there: rulers, artists, and the everyday lives around them. Every connection between people is a dated, sourced event. See `project-brief.html` for the original brief.
 
 ## Requirements
@@ -24,6 +28,12 @@ nvm use
 cp .env.example .env.local
 npm install
 npm run dev
+```
+
+Or the whole stack in Docker, as it runs in production (Caddy, frontend, backend) on https://localhost:
+
+```sh
+SITE_ADDRESS=localhost docker compose up --build
 ```
 
 ## How it works
@@ -63,3 +73,21 @@ export ANTHROPIC_API_KEY=...
 - `GET /api/regions`, `GET /api/eras`, `GET /api/eras/{id}`.
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
 
+## Deployment
+
+One small VPS (1 vCPU, 2 GB) runs the stack with Docker Compose: Caddy terminates HTTPS (Let's Encrypt) and proxies to the Next.js frontend, which forwards `/api/*` to the backend. The backend has no published port, and the production profile turns the H2 console off.
+
+The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
+
+1. **Every pull request** runs the backend tests and the frontend lint and build.
+2. **On `main`**, both images are built once, pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
+3. **The deploy job** (GitHub environment `production`) verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key). SSH is closed on the public interface.
+4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site through Caddy. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
+
+Dependabot keeps Actions (pinned by commit), Gradle, npm and base images up to date.
+
+Inspect what runs in production:
+
+```sh
+gh attestation verify oci://ghcr.io/charlotte-hib/who-lived-when-backend:latest --repo charlotte-hib/who-lived-when
+```
