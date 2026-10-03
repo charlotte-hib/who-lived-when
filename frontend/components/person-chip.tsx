@@ -12,11 +12,13 @@ type PersonChipProps = {
   year: number;
   /** Add the place after the age, for people from elsewhere. */
   showPlace?: boolean;
+  /** Replace the current history entry instead of adding one, e.g. when moving from person to person in a panel. */
+  replace?: boolean;
 };
 
-export function PersonChip({ person, year, showPlace }: PersonChipProps) {
+export function PersonChip({ person, year, showPlace, replace }: PersonChipProps) {
   return (
-    <Link href={`/person/${person.slug}?year=${year}`} title={person.occupation} className={cn(chipClass, "hover:border-lamp")}>
+    <Link href={`/person/${person.slug}?year=${year}`} replace={replace} title={person.occupation} className={cn(chipClass, "hover:border-lamp")}>
       <PersonAvatar person={person} className="size-7" />
       {person.name}
       <span className="font-mono text-xs text-muted-foreground tabular-nums">

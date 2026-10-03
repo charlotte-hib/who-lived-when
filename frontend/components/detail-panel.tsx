@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called once the panel has finished opening or closing. */
+  onOpenChangeComplete?: (open: boolean) => void;
   /** What the panel is about, e.g. "Everyday life". */
   kicker: string;
   children: ReactNode;
@@ -21,11 +23,11 @@ const EASE = "ease-[cubic-bezier(0.32,0.72,0,1)]";
  * More about someone or something without leaving the page: a bottom sheet on phones, a side panel on
  * wider screens. Swipe it away, tap outside or press Escape to close it.
  */
-export function DetailPanel({ open, onOpenChange, kicker, children }: Props) {
+export function DetailPanel({ open, onOpenChange, onOpenChangeComplete, kicker, children }: Props) {
   const wide = useMediaQuery("(min-width: 40rem)");
 
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} swipeDirection={wide ? "right" : "down"}>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} onOpenChangeComplete={onOpenChangeComplete} swipeDirection={wide ? "right" : "down"}>
       <Drawer.Portal>
         <Drawer.Backdrop
           className={cn(
