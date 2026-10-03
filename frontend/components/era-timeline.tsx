@@ -53,7 +53,7 @@ export function EraTimeline({ era, people, events }: Props) {
           <div className="relative" style={{ height: rows.length * ROW_HEIGHT + AXIS_GAP_PX }}>
             <EraBand era={era} x={x} />
             {events.map((event) => (
-              <EventLink key={event.id} event={event} x={x} rows={event.participants.map((p) => rowOf(p.slug))} />
+              <EventLink key={event.id} event={event} x={x} rows={event.participants.map((p) => rowOf(p.person.slug))} />
             ))}
             {rows.map((person, index) => (
               <LifespanRow
@@ -61,7 +61,7 @@ export function EraTimeline({ era, people, events }: Props) {
                 person={person}
                 index={index}
                 x={x}
-                events={events.filter((e) => e.participants.some((p) => p.slug === person.slug))}
+                events={events.filter((e) => e.participants.some((p) => p.person.slug === person.slug))}
               />
             ))}
           </div>
@@ -144,7 +144,7 @@ function LifespanRow({ person, index, x, events }: RowProps) {
             style={{ left: x(event.year) }}
           />
           <TooltipContent>
-            {event.year} · {event.title} ({event.participants.find((p) => p.slug === person.slug)?.role})
+            {event.year} · {event.title} ({event.participants.find((p) => p.person.slug === person.slug)?.role})
           </TooltipContent>
         </Tooltip>
       ))}

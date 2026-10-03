@@ -1,11 +1,9 @@
 import { BookOpen, Link2 } from "lucide-react";
 import Link from "next/link";
+import { sourceLabel } from "@/components/event-details";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Event } from "@/lib/types";
-
-const sourceLabel = (url: string) =>
-  decodeURIComponent(url.replace("https://en.wikipedia.org/wiki/", "wikipedia:"));
 
 export function ConnectionCard({ event }: { event: Event }) {
   return (
@@ -22,12 +20,12 @@ export function ConnectionCard({ event }: { event: Event }) {
         <div className="flex flex-wrap gap-1.5">
           {event.participants.map((participant) => (
             <Badge
-              key={participant.slug}
+              key={participant.person.slug}
               variant="outline"
               className="bg-background"
-              render={<Link href={`/person/${participant.slug}`} />}
+              render={<Link href={`/person/${participant.person.slug}?year=${event.year}`} />}
             >
-              {participant.name} · {participant.role}
+              {participant.person.name} · {participant.role}
             </Badge>
           ))}
         </div>

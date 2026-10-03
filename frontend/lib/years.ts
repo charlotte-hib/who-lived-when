@@ -17,5 +17,9 @@ export function ageLabel(person: { birthYear: number; datesApproximate: boolean 
   return person.datesApproximate ? `c. ${age}` : `${age}`;
 }
 
+/** Whether someone is alive in a year; people without a death year are alive today. */
+export const isAlive = (person: { birthYear: number; deathYear: number | null }, year: number) =>
+  person.birthYear <= year && year <= (person.deathYear ?? CURRENT_YEAR);
+
 /** Moves to the neighbouring year when a calculation lands on the non-existent year 0. */
 export const skipYearZero = (year: number, direction: 1 | -1 = 1) => (year === 0 ? direction : year);
