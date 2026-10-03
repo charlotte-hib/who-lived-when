@@ -68,6 +68,8 @@ data class EraDetailDto(
     val era: EraDto,
     val people: Map<Domain, List<PersonDto>>,
     val events: List<EventDto>,
+    /** The moments set under this regime, to step into. */
+    val moments: List<MomentSummaryDto>,
 )
 
 /** What a moment shows on a card: enough to choose it, not to explore it. */
