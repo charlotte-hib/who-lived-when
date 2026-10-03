@@ -1,0 +1,74 @@
+package dev.wholivedwhen.web
+
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.get
+
+/** Runs against the seed data in `resources/seed`. */
+@SpringBootTest(properties = ["app.wikipedia.enrich=false"])
+@AutoConfigureMockMvc
+class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
+
+    @Test
+    fun `a person is shown in the world around them in the year asked for`() {
+        mockMvc.get("/api/people/emile-zola?year=1875").andExpect {
+            status { isOk() }
+            jsonPath("$.year") { value(1875) }
+            jsonPath("$.age") { value(35) }
+            jsonPath("$.worldMoment.id") { value("paris-1870s") }
+            jsonPath("$.world.arts") { exists() }
+            jsonPath("$.aroundPeople[?(@.slug == 'victor-hugo')]") { exists() }
+            jsonPath("$.aroundPeople[?(@.slug == 'emile-zola')]") { doesNotExist() }
+            jsonPath("$.elsewhere[*].regionCode") { value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("FR"))) }
+            jsonPath("$.moments[*].id") { value(org.hamcrest.Matchers.hasItems("paris-1870s", "paris-1890s")) }
+        }
+    }
+
+    @Test
+    fun `their life in their time lists regimes and events with their age`() {
+        mockMvc.get("/api/people/emile-zola").andExpect {
+            jsonPath("$.lifeline[0].text") { value("Born under the July Monarchy") }
+            jsonPath("$.lifeline[?(@.text == 'The Third Republic begins')].age") { value(30) }
+            jsonPath("$.lifeline[?(@.kind == 'OWN_EVENT' && @.year == 1898)].role") { value("author") }
+            jsonPath("$.lifeline[-1].kind") { value("DEATH") }
+        }
+    }
+
+    @Test
+    fun `without a year a person is shown in their prime`() {
+        mockMvc.get("/api/people/emile-zola?year=1950").andExpect {
+            jsonPath("$.year") { value(1875) }
+        }
+    }
+
+    @Test
+    fun `meanwhile lists people alive elsewhere that year`() {
+        mockMvc.get("/api/years/1875/people?exclude=fr").andExpect {
+            status { isOk() }
+            jsonPath("$[?(@.slug == 'emperor-meiji')]") { exists() }
+            jsonPath("$[?(@.regionCode == 'FR')]") { isEmpty() }
+        }
+    }
+
+    @Test
+    fun `search ignores accents and finds people and moments`() {
+        mockMvc.get("/api/search?q=zola").andExpect {
+            jsonPath("$.people[0].slug") { value("emile-zola") }
+        }
+        mockMvc.get("/api/search?q=kyoto").andExpect {
+            jsonPath("$.moments[0].id") { value("kyoto-1590s") }
+        }
+    }
+
+    @Test
+    fun `an era only lists people from its own region`() {
+        mockMvc.get("/api/eras/jp-meiji-era").andExpect {
+            status { isOk() }
+            jsonPath("$.people.POWER[?(@.slug == 'emperor-meiji')]") { exists() }
+            jsonPath("$.people.ARTS[?(@.slug == 'claude-monet')]") { doesNotExist() }
+        }
+    }
+}
