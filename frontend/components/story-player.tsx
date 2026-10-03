@@ -1,18 +1,21 @@
 "use client";
 
-import { BookOpen, ChevronRight, X } from "lucide-react";
+import { BookOpen, ChevronRight, ChevronUp, X } from "lucide-react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ArtworkImage } from "@/components/artwork-image";
+import { DetailPanel } from "@/components/detail-panel";
 import { DoorCard } from "@/components/door-card";
+import { EventDetails, sourceLabel } from "@/components/event-details";
+import { LifeDetails, LifeMark } from "@/components/life";
 import { PersonAvatar } from "@/components/person-avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { titleOf } from "@/lib/moments";
 import type { Story, StoryCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ageLabel, formatYear } from "@/lib/years";
+import { ageLabel, formatYear, isAlive } from "@/lib/years";
 
 const SWIPE_PX = 50;
 const SWIPE_VELOCITY = 400;
@@ -20,12 +23,20 @@ const SWIPE_VELOCITY = 400;
 const TURN_PX = 160;
 /** The card follows the finger at this fraction of its travel. */
 const DRAG_RATIO = 0.5;
+/** How far a card can be pulled up before "read more" opens. */
+const PULL_PX = 40;
 
 /** `?card=` is 1-based and counts the doors as the last card, so a link or a back button returns to the same page. */
 function cardIndex(param: string | null, last: number) {
   const card = Number(param);
   return Number.isInteger(card) && card >= 1 ? Math.min(card, last + 1) - 1 : 0;
 }
+
+const personHref = (card: StoryCard) => `/person/${card.person!.slug}${card.year ? `?year=${card.year}` : ""}`;
+
+/** Person, life and event cards have more to read than fits on the card. */
+const hasMore = (card: StoryCard | undefined) =>
+  (card?.type === "PERSON" && !!card.person) || (card?.type === "LIFE" && !!card.life) || (card?.type === "EVENT" && !!card.event);
 
 /**
  * A moment told one card at a time over its painting. Tap or swipe to turn the page; there is no timer.
@@ -40,16 +51,25 @@ export function StoryPlayer({ story }: { story: Story }) {
   const card = cards[index];
   const art = card?.art ?? moment.art;
 
-  // The card follows a horizontal drag. A drag also ends in a click on the tap zones, which must not turn the page twice.
+  // The card follows a horizontal drag, and lifts a little when pulled up for more. A drag also ends in a click
+  // on the tap zones, which must not turn the page twice.
   const dragX = useMotionValue(0);
+  const dragY = useMotionValue(0);
   const dragOpacity = useTransform(dragX, [-2 * TURN_PX, 0, 2 * TURN_PX], [0.3, 1, 0.3]);
   const dragged = useRef(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const step = useCallback((by: number) => setIndex((current) => Math.min(cards.length, Math.max(0, current + by))), [cards.length]);
   const close = useCallback(() => router.push(`/moment/${moment.id}`), [router, moment.id]);
   const tap = (by: number) => {
     if (!dragged.current) step(by);
   };
+  // A person has a page of their own; lives and events open in a panel over the story.
+  const readMore = useCallback(() => {
+    if (!hasMore(card)) return;
+    if (card.type === "PERSON") router.push(personHref(card));
+    else setMoreOpen(true);
+  }, [card, router]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -60,15 +80,18 @@ export function StoryPlayer({ story }: { story: Story }) {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // Keys belong to the panel while it is open.
+      if (event.target instanceof Element && event.target.closest("[role=dialog]")) return;
       if (event.key === "ArrowRight" || event.key === " ") {
         event.preventDefault();
         step(1);
       } else if (event.key === "ArrowLeft") step(-1);
+      else if (event.key === "ArrowUp") readMore();
       else if (event.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [step, close]);
+  }, [step, close, readMore]);
 
   return (
     <motion.div
@@ -77,8 +100,14 @@ export function StoryPlayer({ story }: { story: Story }) {
       onPanStart={() => (dragged.current = true)}
       onPan={(_, { offset }) => {
         if (Math.abs(offset.x) > Math.abs(offset.y)) dragX.set(offset.x * DRAG_RATIO);
+        else if (hasMore(card)) dragY.set(Math.max(offset.y, -2 * PULL_PX) * DRAG_RATIO);
       }}
       onPanEnd={(_, { offset, velocity }) => {
+        animate(dragY, 0, { type: "spring", stiffness: 400, damping: 35 });
+        if (Math.abs(offset.y) > Math.abs(offset.x)) {
+          if (offset.y < -PULL_PX || velocity.y < -SWIPE_VELOCITY) readMore();
+          return;
+        }
         const by = offset.x < 0 ? 1 : -1;
         const next = Math.min(cards.length, Math.max(0, index + by));
         const swiped = Math.abs(offset.x) > Math.abs(offset.y) && (Math.abs(offset.x) > SWIPE_PX || Math.abs(velocity.x) > SWIPE_VELOCITY);
@@ -129,11 +158,12 @@ export function StoryPlayer({ story }: { story: Story }) {
         </>
       )}
 
-      <motion.div style={{ x: dragX, opacity: dragOpacity }} className="pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-6 pb-10">
+      <motion.div style={{ x: dragX, y: dragY, opacity: dragOpacity }} className="pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-6 pb-10">
         <AnimatePresence mode="wait" onExitComplete={() => dragX.set(0)}>
           <motion.div
             key={index}
-            className="pointer-events-auto max-h-[calc(100dvh-7rem)] touch-pan-y overflow-y-auto overscroll-contain"
+            // Only the doors can outgrow a small screen; other cards keep vertical swipes for "read more".
+            className={cn("pointer-events-auto", atEnd && "max-h-[calc(100dvh-7rem)] touch-pan-y overflow-y-auto overscroll-contain")}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -152,6 +182,15 @@ export function StoryPlayer({ story }: { story: Story }) {
             ) : (
               <Card card={card} />
             )}
+            {hasMore(card) && (
+              <button
+                type="button"
+                onClick={readMore}
+                className="mt-5 inline-flex items-center gap-1 rounded-full border border-white/30 bg-black/30 py-1.5 pr-4 pl-3 text-sm hover:bg-black/50"
+              >
+                <ChevronUp className="size-4" /> {card.type === "PERSON" ? `More about ${card.person!.name}` : "Read more"}
+              </button>
+            )}
             {index === 0 && (
               <p className="mt-6 flex items-center gap-1 text-xs tracking-wide text-white/60">
                 Tap or swipe to turn the page <ChevronRight className="size-3.5" />
@@ -160,6 +199,17 @@ export function StoryPlayer({ story }: { story: Story }) {
           </motion.div>
         </AnimatePresence>
       </motion.div>
+
+      <DetailPanel open={moreOpen} onOpenChange={setMoreOpen} kicker={card?.type === "EVENT" ? "Documented event" : "Everyday life"}>
+        {card?.life && (
+          <LifeDetails
+            life={card.life}
+            year={card.year ?? moment.focusYear}
+            around={moment.cast.filter((person) => isAlive(person, card.year ?? moment.focusYear))}
+          />
+        )}
+        {card?.event && <EventDetails event={card.event} />}
+      </DetailPanel>
     </motion.div>
   );
 }
@@ -187,7 +237,7 @@ function Card({ card }: { card: StoryCard }) {
     return (
       <>
         <Kicker>Someone who lived it</Kicker>
-        <Link href={card.year ? `/person/${person.slug}?year=${card.year}` : `/person/${person.slug}`} className="mb-4 flex items-center gap-4 hover:opacity-90">
+        <Link href={personHref(card)} className="mb-4 flex items-center gap-4 hover:opacity-90">
           <PersonAvatar person={person} className="size-24 ring-4" />
           <span>
             <span className={titleClass}>{person.name}</span>
@@ -207,7 +257,7 @@ function Card({ card }: { card: StoryCard }) {
       <>
         <Kicker>Everyday life</Kicker>
         <div className="mb-4 flex items-center gap-4">
-          <span aria-hidden className="size-24 rounded-full bg-[repeating-linear-gradient(45deg,var(--color-everyday)_0_4px,transparent_4px_10px)] opacity-80 ring-4 ring-everyday/60" />
+          <LifeMark size="lg" />
           <span>
             <span className={titleClass}>{card.life.label}</span>
             <span className="mt-1 block text-sm text-white/70">Illustrated · typical of the period</span>
@@ -230,17 +280,17 @@ function Card({ card }: { card: StoryCard }) {
         </p>
         {event.participants.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-2">
-            {event.participants.map((participant) => (
-              <li key={participant.slug}>
-                <Link href={`/person/${participant.slug}?year=${event.year}`} className="rounded-full bg-white/15 px-3 py-1 text-sm hover:bg-white/25">
-                  {participant.name} · {participant.role}
+            {event.participants.map(({ person, role }) => (
+              <li key={person.slug}>
+                <Link href={`/person/${person.slug}?year=${event.year}`} className="rounded-full bg-white/15 px-3 py-1 text-sm hover:bg-white/25">
+                  {person.name} · {role}
                 </Link>
               </li>
             ))}
           </ul>
         )}
         <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-xs text-white/70 hover:underline">
-          <BookOpen className="size-3.5" /> Source: {decodeURIComponent(event.sourceUrl.replace("https://en.wikipedia.org/wiki/", "wikipedia:"))}
+          <BookOpen className="size-3.5" /> Source: {sourceLabel(event.sourceUrl)}
         </a>
       </>
     );

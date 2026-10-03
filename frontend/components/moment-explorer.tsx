@@ -5,17 +5,18 @@ import { Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DoorCard } from "@/components/door-card";
-import { LifeChip, PersonChip } from "@/components/person-chip";
+import { DetailPanel } from "@/components/detail-panel";
+import { EventDetails } from "@/components/event-details";
+import { LifeChip } from "@/components/life";
+import { PersonChip } from "@/components/person-chip";
 import { WorldAround } from "@/components/world-around";
 import { fetchAliveElsewhere } from "@/lib/api-browser";
 import { DOMAIN_ORDER, DOMAINS } from "@/lib/domains";
 import { hasStory, titleOf } from "@/lib/moments";
-import type { Era, MomentDetail, Person } from "@/lib/types";
-import { CURRENT_YEAR, ageLabel, formatYear } from "@/lib/years";
+import type { Era, Event, MomentDetail, Person } from "@/lib/types";
+import { ageLabel, formatYear, isAlive } from "@/lib/years";
 
 const DEBOUNCE_MS = 200;
-
-const isAlive = (person: Person, year: number) => person.birthYear <= year && year <= (person.deathYear ?? CURRENT_YEAR);
 
 /** Consecutive eras share their boundary year; the one that starts later wins it. */
 const eraAt = (eras: Era[], year: number) => eras.filter((era) => era.startYear <= year && year <= era.endYear).at(-1);
@@ -44,6 +45,9 @@ export function MomentExplorer({ detail }: { detail: MomentDetail }) {
   const { moment, world, eras, people, lives, events, doors } = detail;
   const [year, setYear] = useState(moment.focusYear);
   const elsewhere = useAliveElsewhere(moment.regionCode, year);
+  // The event stays set while its panel slides away.
+  const [panelEvent, setPanelEvent] = useState<Event | null>(null);
+  const [eventOpen, setEventOpen] = useState(false);
 
   const here = useMemo(() => people.filter((person) => isAlive(person, year)), [people, year]);
   const livesHere = lives.filter((life) => life.startYear <= year && year <= life.endYear);
@@ -119,7 +123,7 @@ export function MomentExplorer({ detail }: { detail: MomentDetail }) {
               </h3>
               <div className="flex flex-wrap gap-2">
                 {group.map((person) => <PersonChip key={person.slug} person={person} year={year} />)}
-                {groupLives.map((life) => <LifeChip key={life.id} life={life} />)}
+                {groupLives.map((life) => <LifeChip key={life.id} life={life} around={here} year={year} />)}
                 {count === 0 && <p className="py-1 text-sm text-muted-foreground">Nobody in this group yet.</p>}
               </div>
             </div>
@@ -136,11 +140,28 @@ export function MomentExplorer({ detail }: { detail: MomentDetail }) {
                 {formatYear(event.year)} · {event.title}
               </h3>
               <p className="text-sm text-muted-foreground">{event.description}</p>
-              <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="text-xs text-muted-foreground underline">
-                Source
-              </a>
+              <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+                {event.participants.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPanelEvent(event);
+                      setEventOpen(true);
+                    }}
+                    className="text-arts underline"
+                  >
+                    Who was there
+                  </button>
+                )}
+                <a href={event.sourceUrl} target="_blank" rel="noreferrer" className="underline">
+                  Source
+                </a>
+              </div>
             </article>
           ))}
+          <DetailPanel open={eventOpen} onOpenChange={setEventOpen} kicker="Documented event">
+            {panelEvent && <EventDetails event={panelEvent} />}
+          </DetailPanel>
         </section>
       )}
 
