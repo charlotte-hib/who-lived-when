@@ -1,4 +1,14 @@
-{$SITE_ADDRESS} {
+# This app's site on the server's Caddy, which serves every site on the VPS and gets the
+# HTTPS certificates. /etc/caddy/Caddyfile has: import /opt/who-lived-when/deploy/Caddyfile
+# After changing this file: sudo systemctl reload caddy
+
+app.example.com {
 	encode zstd gzip
-	reverse_proxy frontend:3000
+	reverse_proxy 127.0.0.1:3000
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
 }
