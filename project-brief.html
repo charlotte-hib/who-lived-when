@@ -163,9 +163,8 @@
   <tr><th>Route</th><th>Screen</th><th>What it shows</th></tr>
   <tr><td><code>/</code></td><td>Start</td><td>The featured story full screen (painting, hook, cast with ages, Play the story, Explore the moment, arrows to the other stories). Then "Where the stories are": one row per place, one dot per moment on a log time scale, gold for stories. Then the Stories shelf and More moments. Search in the header finds people and moments.</td></tr>
   <tr><td><code>/moment/[id]/story</code></td><td>Story player</td><td>Full screen, dark, one card at a time over the painting; tap, swipe (the card follows the finger) or arrow keys, no timer. <code>?card=</code> keeps the place, so the back button returns to the same card. Person, life and event cards have "Read more" (or swipe up): a person, a life or an event opens a panel over the story. The last card shows the doors and "Meet everyone in…".</td></tr>
-  <tr><td><code>/moment/[id]</code></td><td>Moment</td><td>A year slider within the moment, who governs that year, the world around (with people alive elsewhere), everyone here grouped as power, arts and ideas, everyday life, the documented events, and where to go next. A typical life or "Who was there" opens a panel: a bottom sheet on phones, a side panel on wider screens.</td></tr>
+  <tr><td><code>/moment/[id]</code></td><td>Moment</td><td>A year slider within the moment, who governs that year (opening the era in a panel: its moments and people), the world around (with people alive elsewhere), everyone here grouped as power, arts and ideas, everyday life, the documented events, and where to go next. A typical life or "Who was there" opens a panel: a bottom sheet on phones, a side panel on wider screens.</td></tr>
   <tr><td><code>/person/[slug]?year=</code></td><td>Person</td><td>Portrait, the first paragraph of their Wikipedia article, the world around them, their life in their time, who was around them, who was alive elsewhere, and the moments of their life. Opened from within the site, a person shows in a panel over the current page instead (an intercepting route in <code>app/@panel</code>), with a link to the full page; a shared link or a reload shows the full page.</td></tr>
-  <tr><td><code>/era/[id]</code></td><td>Era</td><td>Secondary: everyone alive under one regime on a lifespan timeline. Linked from "Who governs".</td></tr>
 </table>
 
 <h3>Anatomy of a story card</h3>
@@ -197,7 +196,6 @@
   <tr><td>Framework</td><td>Next.js 16 (App Router), React 19, Node 24</td><td>Server components fetch data; story player, moment slider and search are client components</td></tr>
   <tr><td>UI</td><td>shadcn/ui (Base UI variant), Tailwind 4, Lucide</td><td>Dark gallery theme in <code>app/globals.css</code></td></tr>
   <tr><td>Motion</td><td><code>motion</code></td><td>Card and painting transitions</td></tr>
-  <tr><td>Charts</td><td>visx</td><td>Only the era page's lifespan timeline</td></tr>
   <tr><td>API access</td><td>Next.js rewrites</td><td>The browser calls <code>/api/*</code> on the site itself; Next forwards to <code>BACKEND_URL</code>. No CORS, backend never public.</td></tr>
 </table>
 

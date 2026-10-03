@@ -5,6 +5,7 @@ import { Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DoorCard } from "@/components/door-card";
+import { EraButton } from "@/components/era-panel";
 import { DetailPanel } from "@/components/detail-panel";
 import { EventDetails } from "@/components/event-details";
 import { LifeChip } from "@/components/life";
@@ -66,9 +67,7 @@ export function MomentExplorer({ detail }: { detail: MomentDetail }) {
           {era && (
             <p className="pb-2 text-muted-foreground">
               Who governs:{" "}
-              <Link href={`/era/${era.id}`} className="text-foreground hover:underline">
-                {era.label}
-              </Link>
+              <EraButton era={era} momentId={moment.id} />
             </p>
           )}
         </div>

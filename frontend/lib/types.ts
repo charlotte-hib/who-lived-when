@@ -54,6 +54,8 @@ export type EraDetail = {
   era: Era;
   people: Partial<Record<Domain, Person[]>>;
   events: Event[];
+  /** The moments set under this regime. */
+  moments: MomentSummary[];
 };
 
 export type Artwork = { url: string; credit: string; sourceUrl: string };
