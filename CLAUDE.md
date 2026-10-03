@@ -15,7 +15,7 @@ Public repo, part of the author's CV: https://github.com/charlotte-hib/who-lived
 
 - Conventional Commits, small and logical, with a body explaining why. Keep the tree clean.
 - Author `charlotte-hib <9551327+charlotte-hib@users.noreply.github.com>`. No `Co-Authored-By` trailer.
-- Pushing to `main` deploys to production.
+- `main` is protected by the "Protect main" ruleset: no direct push, force push or deletion. Work on a branch and open a pull request; it merges (squash or rebase) once "Backend tests" and "Frontend lint and build" pass. Merging deploys to production.
 
 ## Production
 
