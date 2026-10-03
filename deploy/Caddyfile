@@ -1,8 +1,10 @@
 # This app's site on the server's Caddy, which serves every site on the VPS and gets the
 # HTTPS certificates. /etc/caddy/Caddyfile has: import /opt/who-lived-when/deploy/Caddyfile
 # After changing this file: sudo systemctl reload caddy
+# 51-254-125-102.sslip.io resolves to the VPS without any DNS record: the address in use until
+# wholivedwhen.charlottehibert.com has its DNS records.
 
-wholivedwhen.charlottehibert.com {
+wholivedwhen.charlottehibert.com, 51-254-125-102.sslip.io {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
 	header {

@@ -19,7 +19,7 @@ Public repo, part of the author's CV: https://github.com/charlotte-hib/who-lived
 
 ## Production
 
-https://wholivedwhen.charlottehibert.com, on an OVH VPS (Debian 13, 1 vCPU, 2 GB RAM + 2 GB swap) that also hosts other sites.
+https://51-254-125-102.sslip.io for now (https://wholivedwhen.charlottehibert.com once its DNS records exist), on an OVH VPS (Debian 13, 1 vCPU, 2 GB RAM + 2 GB swap) that also hosts other sites.
 
 - **Pipeline** (`.github/workflows/ci.yml`): pull requests run backend tests and frontend lint and build. On `main`, images are built once, pushed to GHCR (`ghcr.io/charlotte-hib/who-lived-when-{backend,frontend}`, tagged `sha-<commit>`) with signed SLSA provenance and SPDX SBOM attestations. The `deploy` job (environment `production`, `main` only) verifies the provenance, joins the tailnet through Tailscale workload identity federation, and runs `deploy/deploy.sh` over Tailscale SSH. `workflow_dispatch` redeploys `main` by hand.
 - **No secrets in GitHub.** Repository variables only: `TS_OAUTH_CLIENT_ID`, `TS_AUDIENCE` (Tailscale federated identity, subject `repo:charlotte-hib/who-lived-when:environment:production`), `VPS_HOST=who-lived-when-vps`. Do not add SSH keys or tokens.

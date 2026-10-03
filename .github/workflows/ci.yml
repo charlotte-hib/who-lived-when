@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://wholivedwhen.charlottehibert.com
+      url: https://51-254-125-102.sslip.io
     concurrency:
       group: production
       cancel-in-progress: false
