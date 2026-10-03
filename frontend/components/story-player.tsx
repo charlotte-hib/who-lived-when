@@ -15,7 +15,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { titleOf } from "@/lib/moments";
 import type { Story, StoryCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ageLabel, formatYear, isAlive } from "@/lib/years";
+import { ageText, formatYear, isAlive } from "@/lib/years";
 
 const SWIPE_PX = 50;
 const SWIPE_VELOCITY = 400;
@@ -243,7 +243,7 @@ function Card({ card }: { card: StoryCard }) {
             <span className={titleClass}>{person.name}</span>
             <span className="mt-1 block text-sm text-white/70">
               {person.occupation}
-              {card.year && ` · ${ageLabel(person, card.year)} in ${formatYear(card.year)}`}
+              {card.year && ` · ${ageText(person, card.year)} in ${formatYear(card.year)}`}
             </span>
           </span>
         </Link>

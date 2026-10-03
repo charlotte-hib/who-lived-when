@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { DOMAINS } from "@/lib/domains";
 import type { PersonDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { formatLifespan, formatYear } from "@/lib/years";
+import { ageText, formatLifespan, formatYear } from "@/lib/years";
 
 /** Who someone was, in a few lines: portrait, dates, occupation and their age in the year looked at. */
 export function PersonHeader({ detail, className }: { detail: PersonDetail; className?: string }) {
@@ -19,8 +19,8 @@ export function PersonHeader({ detail, className }: { detail: PersonDetail; clas
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className={cn(domain.soft, domain.text)}>{domain.title}</Badge>
-          <span className="font-mono text-xs text-lamp">
-            {detail.age} in {formatYear(year)}
+          <span className="text-sm text-lamp tabular-nums">
+            {ageText(person, year)} in {formatYear(year)}
           </span>
         </div>
       </div>

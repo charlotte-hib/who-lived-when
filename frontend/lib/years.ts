@@ -27,5 +27,12 @@ export function parseYear(value: string | string[] | undefined) {
 export const isAlive = (person: { birthYear: number; deathYear: number | null }, year: number) =>
   person.birthYear <= year && year <= (person.deathYear ?? CURRENT_YEAR);
 
+/** A person's age in a year, spelled out for sentences: "34 years old", "about 34 years old", "a newborn". */
+export function ageText(person: { birthYear: number; datesApproximate: boolean }, year: number) {
+  const age = yearsBetween(person.birthYear, year);
+  if (age === 0) return "a newborn";
+  return `${person.datesApproximate ? "about " : ""}${age} ${age === 1 ? "year" : "years"} old`;
+}
+
 /** Moves to the neighbouring year when a calculation lands on the non-existent year 0. */
 export const skipYearZero = (year: number, direction: 1 | -1 = 1) => (year === 0 ? direction : year);
