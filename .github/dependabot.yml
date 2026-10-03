@@ -1,4 +1,5 @@
-# Weekly dependency updates, grouped per ecosystem so each arrives as one pull request.
+# Weekly dependency updates. Minor and patch updates are grouped per ecosystem so each arrives as one
+# pull request; major updates come one per pull request, so a breaking one doesn't block the rest.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -8,6 +9,7 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+        update-types: [minor, patch]
   - package-ecosystem: gradle
     directory: /backend
     schedule:
@@ -15,6 +17,7 @@ updates:
     groups:
       backend:
         patterns: ["*"]
+        update-types: [minor, patch]
   - package-ecosystem: npm
     directory: /frontend
     schedule:
@@ -22,6 +25,14 @@ updates:
     groups:
       frontend:
         patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint does not support TypeScript 7 yet.
+      - dependency-name: typescript
+        versions: [">=7"]
+      # Follows the Node major that runs the app (.nvmrc, frontend/Dockerfile): bumped by hand with it.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule:
