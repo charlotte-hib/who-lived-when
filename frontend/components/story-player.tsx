@@ -1,9 +1,9 @@
 "use client";
 
-import { BookOpen, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { BookOpen, ChevronRight, X } from "lucide-react";
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { ArtworkImage } from "@/components/artwork-image";
 import { DoorCard } from "@/components/door-card";
@@ -15,6 +15,17 @@ import { cn } from "@/lib/utils";
 import { ageLabel, formatYear } from "@/lib/years";
 
 const SWIPE_PX = 50;
+const SWIPE_VELOCITY = 400;
+/** How far a turned card keeps sliding while it fades out. */
+const TURN_PX = 160;
+/** The card follows the finger at this fraction of its travel. */
+const DRAG_RATIO = 0.5;
+
+/** `?card=` is 1-based and counts the doors as the last card, so a link or a back button returns to the same page. */
+function cardIndex(param: string | null, last: number) {
+  const card = Number(param);
+  return Number.isInteger(card) && card >= 1 ? Math.min(card, last + 1) - 1 : 0;
+}
 
 /**
  * A moment told one card at a time over its painting. Tap or swipe to turn the page; there is no timer.
@@ -22,15 +33,30 @@ const SWIPE_PX = 50;
  */
 export function StoryPlayer({ story }: { story: Story }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { moment, cards, doors } = story;
-  const [index, setIndex] = useState(0);
-  const touchX = useRef<number | null>(null);
+  const [index, setIndex] = useState(() => cardIndex(searchParams.get("card"), cards.length));
   const atEnd = index === cards.length;
   const card = cards[index];
   const art = card?.art ?? moment.art;
 
+  // The card follows a horizontal drag. A drag also ends in a click on the tap zones, which must not turn the page twice.
+  const dragX = useMotionValue(0);
+  const dragOpacity = useTransform(dragX, [-2 * TURN_PX, 0, 2 * TURN_PX], [0.3, 1, 0.3]);
+  const dragged = useRef(false);
+
   const step = useCallback((by: number) => setIndex((current) => Math.min(cards.length, Math.max(0, current + by))), [cards.length]);
   const close = useCallback(() => router.push(`/moment/${moment.id}`), [router, moment.id]);
+  const tap = (by: number) => {
+    if (!dragged.current) step(by);
+  };
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (index === 0) url.searchParams.delete("card");
+    else url.searchParams.set("card", String(index + 1));
+    window.history.replaceState(null, "", url);
+  }, [index]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -45,14 +71,23 @@ export function StoryPlayer({ story }: { story: Story }) {
   }, [step, close]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-hidden bg-black text-white"
-      onTouchStart={(event) => (touchX.current = event.touches[0].clientX)}
-      onTouchEnd={(event) => {
-        if (touchX.current === null) return;
-        const dx = event.changedTouches[0].clientX - touchX.current;
-        if (Math.abs(dx) > SWIPE_PX) step(dx < 0 ? 1 : -1);
-        touchX.current = null;
+    <motion.div
+      className="fixed inset-0 z-50 touch-none overflow-hidden bg-black text-white select-none"
+      onPointerDown={() => (dragged.current = false)}
+      onPanStart={() => (dragged.current = true)}
+      onPan={(_, { offset }) => {
+        if (Math.abs(offset.x) > Math.abs(offset.y)) dragX.set(offset.x * DRAG_RATIO);
+      }}
+      onPanEnd={(_, { offset, velocity }) => {
+        const by = offset.x < 0 ? 1 : -1;
+        const next = Math.min(cards.length, Math.max(0, index + by));
+        const swiped = Math.abs(offset.x) > Math.abs(offset.y) && (Math.abs(offset.x) > SWIPE_PX || Math.abs(velocity.x) > SWIPE_VELOCITY);
+        if (swiped && next !== index) {
+          setIndex(next);
+          animate(dragX, -by * TURN_PX, { duration: 0.25, ease: "easeOut" });
+        } else {
+          animate(dragX, 0, { type: "spring", stiffness: 400, damping: 35 });
+        }
       }}
     >
       <AnimatePresence initial={false}>
@@ -89,16 +124,16 @@ export function StoryPlayer({ story }: { story: Story }) {
 
       {!atEnd && (
         <>
-          <button type="button" aria-label="Previous card" onClick={() => step(-1)} className="absolute inset-y-0 left-0 z-10 w-[30%] cursor-w-resize" />
-          <button type="button" aria-label="Next card" onClick={() => step(1)} className="absolute inset-y-0 right-0 z-10 w-[70%] cursor-e-resize" />
+          <button type="button" aria-label="Previous card" onClick={() => tap(-1)} className="absolute inset-y-0 left-0 z-10 w-[30%] cursor-w-resize" />
+          <button type="button" aria-label="Next card" onClick={() => tap(1)} className="absolute inset-y-0 right-0 z-10 w-[70%] cursor-e-resize" />
         </>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-6 pb-10">
-        <AnimatePresence mode="wait">
+      <motion.div style={{ x: dragX, opacity: dragOpacity }} className="pointer-events-none absolute inset-x-0 bottom-0 z-20 mx-auto max-w-3xl px-6 pb-10">
+        <AnimatePresence mode="wait" onExitComplete={() => dragX.set(0)}>
           <motion.div
             key={index}
-            className="pointer-events-auto"
+            className="pointer-events-auto max-h-[calc(100dvh-7rem)] touch-pan-y overflow-y-auto overscroll-contain"
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -117,10 +152,15 @@ export function StoryPlayer({ story }: { story: Story }) {
             ) : (
               <Card card={card} />
             )}
+            {index === 0 && (
+              <p className="mt-6 flex items-center gap-1 text-xs tracking-wide text-white/60">
+                Tap or swipe to turn the page <ChevronRight className="size-3.5" />
+              </p>
+            )}
           </motion.div>
         </AnimatePresence>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
