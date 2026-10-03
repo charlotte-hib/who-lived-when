@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
+import { Connections } from "@/components/connections";
 import { LifeChip } from "@/components/life";
 import { LifeInTime } from "@/components/life-in-time";
 import { PersonChip } from "@/components/person-chip";
 import { PersonAbout, PersonHeader } from "@/components/person-header";
+import { TrailStep } from "@/components/person-panel";
 import { Section } from "@/components/section";
 import { buttonVariants } from "@/components/ui/button";
 import { getPerson } from "@/lib/api";
@@ -22,6 +24,7 @@ export default async function PersonPanelPage({ params, searchParams }: PageProp
 
   return (
     <div className="grid gap-8">
+      <TrailStep slug={person.slug} name={person.name} href={`/person/${person.slug}?year=${year}`} />
       <div className="grid gap-5">
         <PersonHeader detail={detail} />
         <PersonAbout detail={detail} />
@@ -30,6 +33,12 @@ export default async function PersonPanelPage({ params, searchParams }: PageProp
           Open the full page
         </a>
       </div>
+
+      {detail.connections.length > 0 && (
+        <Section title="Connected to">
+          <Connections connections={detail.connections} replace />
+        </Section>
+      )}
 
       <Section title="Their life in their time">
         <LifeInTime lines={detail.lifeline} />

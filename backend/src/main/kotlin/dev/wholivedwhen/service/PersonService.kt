@@ -4,7 +4,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import dev.wholivedwhen.domain.Person
 import dev.wholivedwhen.domain.PublicationStatus.PUBLISHED
+import dev.wholivedwhen.repository.ConnectionRepository
 import dev.wholivedwhen.repository.EraRepository
 import dev.wholivedwhen.repository.EventRepository
 import dev.wholivedwhen.repository.LifeRepository
@@ -13,6 +15,7 @@ import dev.wholivedwhen.repository.PersonRepository
 import dev.wholivedwhen.support.currentYear
 import dev.wholivedwhen.support.yearsBetween
 import dev.wholivedwhen.web.ApiMapper
+import dev.wholivedwhen.web.ConnectionDto
 import dev.wholivedwhen.web.PersonDetailDto
 import dev.wholivedwhen.web.PersonDto
 import kotlin.math.abs
@@ -27,6 +30,7 @@ class PersonService(
     private val lives: LifeRepository,
     private val eras: EraRepository,
     private val events: EventRepository,
+    private val connections: ConnectionRepository,
     private val moments: MomentRepository,
     private val momentService: MomentService,
     private val mapper: ApiMapper,
@@ -57,11 +61,29 @@ class PersonService(
                 eras.findByRegionCodeOrderByStartYear(region),
                 events.findByEraRegionCodeAndYearBetweenOrderByYear(region, person.birthYear, end),
             ),
+            connections = connectionsOf(person),
             aroundPeople = people.findAliveBetween(region, ref, ref).filter { it.slug != slug }.map(mapper::toDto),
             aroundLives = lives.findLivedBetween(region, ref, ref).map(mapper::toDto),
             elsewhere = aliveElsewhere(region, ref),
             moments = momentService.overlapping(region, person.birthYear, end),
         )
+    }
+
+    /**
+     * Everyone [person] is documented to have known: curated connections, then the other people of each event
+     * they took part in (with their role in it), unless a curated connection already links the pair. In order of year.
+     */
+    fun connectionsOf(person: Person): List<ConnectionDto> {
+        val curated = connections.findInvolving(person.slug).map { connection ->
+            ConnectionDto(mapper.toDto(connection.other(person)), connection.kind, connection.year, connection.text, connection.sourceUrl)
+        }
+        val linked = curated.map { it.person.slug }.toSet()
+        val shared = events.findDistinctByParticipantsPersonSlugOrderByYear(person.slug).flatMap { event ->
+            event.participants
+                .filter { it.person.slug != person.slug && it.person.slug !in linked }
+                .map { ConnectionDto(mapper.toDto(it.person), it.role, event.year, "${event.title}. ${event.description}", event.sourceUrl) }
+        }
+        return (curated + shared).sortedBy { it.year }
     }
 
     /** A few people alive in [year] in each other region, preferring those in the middle of their lives. */
