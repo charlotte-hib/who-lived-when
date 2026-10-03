@@ -17,6 +17,12 @@ export function ageLabel(person: { birthYear: number; datesApproximate: boolean 
   return person.datesApproximate ? `c. ${age}` : `${age}`;
 }
 
+/** A year from a `?year=` search param, or undefined when it is missing or not a real year. */
+export function parseYear(value: string | string[] | undefined) {
+  const year = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(year) && year !== 0 ? year : undefined;
+}
+
 /** Whether someone is alive in a year; people without a death year are alive today. */
 export const isAlive = (person: { birthYear: number; deathYear: number | null }, year: number) =>
   person.birthYear <= year && year <= (person.deathYear ?? CURRENT_YEAR);

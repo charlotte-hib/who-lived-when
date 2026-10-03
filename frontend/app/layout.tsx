@@ -32,14 +32,17 @@ export const metadata: Metadata = {
   description: "Step into a moment in history and meet the people who lived it, from kings to washerwomen.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children, panel }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} ${story.variable} ${display.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          {children}
+          {panel}
+        </TooltipProvider>
       </body>
     </html>
   );
