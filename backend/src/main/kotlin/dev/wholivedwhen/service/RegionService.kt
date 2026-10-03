@@ -1,0 +1,13 @@
+package dev.wholivedwhen.service
+
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import dev.wholivedwhen.repository.RegionRepository
+import dev.wholivedwhen.web.ApiMapper
+import dev.wholivedwhen.web.RegionDto
+
+@Service
+@Transactional(readOnly = true)
+class RegionService(private val regions: RegionRepository, private val mapper: ApiMapper) {
+    fun list(): List<RegionDto> = regions.findAllByOrderByName().map(mapper::toDto)
+}
