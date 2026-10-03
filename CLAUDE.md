@@ -29,7 +29,7 @@ https://wholivedwhen.charlottehibert.com, on an OVH VPS (Debian 13, 1 vCPU, 2 GB
 
 ## Server access
 
-- Public SSH is closed (ufw allows only 80, 443, 41641/udp and the `tailscale0` interface). Connect over Tailscale SSH: `ssh ovh-vps` (user `debian`, sudo) or `ssh deploy@who-lived-when-vps` (docker group). Never reopen port 22 publicly.
+- Public SSH is closed. The firewall is nftables only (`/etc/nftables.conf`, ufw disabled): inbound 80, 443 (tcp+udp), 41641/udp and the `tailscale0` interface; forward allows container traffic out but nothing in. The file replaces only `table inet filter`; never `flush ruleset`, which wipes Docker's and Tailscale's tables. Connect over Tailscale SSH: `ssh ovh-vps` (user `debian`, sudo) or `ssh deploy@who-lived-when-vps` (docker group). Never reopen port 22 publicly.
 - Tailscale policy: `tag:ci` may reach only `tag:vps` on tcp:22, and SSH only as `deploy`.
 - If Tailscale is unreachable: OVH Manager KVM console or rescue mode.
 - DNS for `charlottehibert.com` is in the OVH Manager (DNS zone): `wholivedwhen` A `51.254.125.102`, AAAA `2001:41d0:401:3000::1340`.
