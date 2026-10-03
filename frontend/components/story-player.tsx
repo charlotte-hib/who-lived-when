@@ -64,7 +64,7 @@ export function StoryPlayer({ story }: { story: Story }) {
   const tap = (by: number) => {
     if (!dragged.current) step(by);
   };
-  // A person has a page of their own; lives and events open in a panel over the story.
+  // A person opens through their own URL (shown in a panel by app/@panel); lives and events have none.
   const readMore = useCallback(() => {
     if (!hasMore(card)) return;
     if (card.type === "PERSON") router.push(personHref(card));
