@@ -15,7 +15,7 @@ import { fetchAliveElsewhere } from "@/lib/api-browser";
 import { DOMAIN_ORDER, DOMAINS } from "@/lib/domains";
 import { hasStory, titleOf } from "@/lib/moments";
 import type { Era, Event, MomentDetail, Person } from "@/lib/types";
-import { ageLabel, formatYear, isAlive } from "@/lib/years";
+import { ageText, formatYear, isAlive } from "@/lib/years";
 
 const DEBOUNCE_MS = 200;
 
@@ -86,7 +86,7 @@ export function MomentExplorer({ detail }: { detail: MomentDetail }) {
         </div>
         {oldest && youngest && oldest !== youngest && (
           <p className="font-story text-xl">
-            In {formatYear(year)}, {oldest.name} is {ageLabel(oldest, year)} and {youngest.name} is {ageLabel(youngest, year)}.
+            In {formatYear(year)}, {oldest.name} is {ageText(oldest, year)} and {youngest.name} is {ageText(youngest, year)}.
           </p>
         )}
       </section>
