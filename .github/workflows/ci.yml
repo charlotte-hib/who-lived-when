@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://app.example.com
+      url: https://203-0-113-10.sslip.io
     concurrency:
       group: production
       cancel-in-progress: false

@@ -5,7 +5,8 @@
 # The release (commit and image digests) is written to .env, which Docker Compose reads.
 set -euo pipefail
 
-SITE=${SITE_ADDRESS:-app.example.com}
+# The sslip.io address until the example.com subdomain has DNS records (see deploy/Caddyfile).
+SITE=${SITE_ADDRESS:-203-0-113-10.sslip.io}
 
 # Everything runs inside functions: bash reads them whole, before `git checkout` rewrites this file.
 main() {
