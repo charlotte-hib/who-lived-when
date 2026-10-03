@@ -4,6 +4,12 @@ import type { Person } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ageLabel, formatLifespan } from "@/lib/years";
 
+/** Short enough for a chip, but still reads as an age: "aged 34", "aged c. 34", "born". */
+const chipAge = (person: Person, year: number) => {
+  const age = ageLabel(person, year);
+  return age === "born" ? age : `aged ${age}`;
+};
+
 export const chipClass = "inline-flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm whitespace-nowrap";
 
 type PersonChipProps = {
@@ -22,7 +28,7 @@ export function PersonChip({ person, year, showPlace, replace }: PersonChipProps
       <PersonAvatar person={person} className="size-7" />
       {person.name}
       <span className="font-mono text-xs text-muted-foreground tabular-nums">
-        {year === undefined ? formatLifespan(person.birthYear, person.deathYear) : ageLabel(person, year)}
+        {year === undefined ? formatLifespan(person.birthYear, person.deathYear) : chipAge(person, year)}
         {showPlace && ` · ${person.region}`}
       </span>
     </Link>

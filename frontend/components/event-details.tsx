@@ -2,7 +2,7 @@ import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { PersonAvatar } from "@/components/person-avatar";
 import type { Event } from "@/lib/types";
-import { ageLabel, formatYear } from "@/lib/years";
+import { ageText, formatYear } from "@/lib/years";
 
 export const sourceLabel = (url: string) => decodeURIComponent(url.replace("https://en.wikipedia.org/wiki/", "wikipedia:"));
 
@@ -28,7 +28,7 @@ export function EventDetails({ event }: { event: Event }) {
                     <span className="font-medium group-hover:underline">{person.name}</span>
                     <span className="text-sm text-arts">{role}</span>
                     <span className="text-xs text-muted-foreground">
-                      {person.occupation} · {ageLabel(person, event.year)} in {formatYear(event.year)}
+                      {person.occupation} · {ageText(person, event.year)} in {formatYear(event.year)}
                     </span>
                     {person.bioShort && <span className="mt-1 text-sm text-foreground/80">{person.bioShort}</span>}
                   </span>

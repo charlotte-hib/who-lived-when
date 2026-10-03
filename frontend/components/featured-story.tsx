@@ -9,7 +9,7 @@ import { PersonAvatar } from "@/components/person-avatar";
 import { buttonVariants } from "@/components/ui/button";
 import type { MomentSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ageLabel } from "@/lib/years";
+import { ageText, formatYear } from "@/lib/years";
 
 type Props = { stories: MomentSummary[]; initialIndex: number };
 
@@ -48,8 +48,8 @@ export function FeaturedStory({ stories, initialIndex }: Props) {
               <PersonAvatar person={person} className="size-9" />
               <span>
                 {person.name}
-                <span className="block font-mono text-xs text-muted-foreground">
-                  {ageLabel(person, story.focusYear)} in {story.focusYear}
+                <span className="block text-xs text-muted-foreground tabular-nums">
+                  {ageText(person, story.focusYear)} in {formatYear(story.focusYear)}
                 </span>
               </span>
             </li>
