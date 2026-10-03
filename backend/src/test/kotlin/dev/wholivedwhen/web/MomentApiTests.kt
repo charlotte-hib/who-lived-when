@@ -59,6 +59,8 @@ class MomentApiTests(@Autowired private val mockMvc: MockMvc) {
             jsonPath("$.cards[2].person.slug") { value("georges-clemenceau") }
             jsonPath("$.cards[4].life.id") { value("a-washerwoman-on-the-seine") }
             jsonPath("$.cards[5].event.participants.length()") { value(3) }
+            jsonPath("$.cards[5].event.participants[0].person.slug") { isString() }
+            jsonPath("$.cards[5].event.participants[0].role") { isString() }
             jsonPath("$.doors.length()") { value(3) }
         }
     }

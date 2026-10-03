@@ -74,13 +74,13 @@ interface LifeRepository : JpaRepository<Life, String> {
 }
 
 interface EventRepository : JpaRepository<Event, String> {
-    @EntityGraph(attributePaths = ["participants", "participants.person"])
+    @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
     fun findByEraIdOrderByYear(eraId: String): List<Event>
 
-    @EntityGraph(attributePaths = ["participants", "participants.person"])
+    @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
     fun findByEraRegionCodeAndYearBetweenOrderByYear(code: String, start: Int, end: Int): List<Event>
 
-    @EntityGraph(attributePaths = ["participants", "participants.person"])
+    @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
     fun findDistinctByParticipantsPersonSlugOrderByYear(slug: String): List<Event>
 }
 
@@ -96,7 +96,7 @@ interface MomentRepository : JpaRepository<Moment, String> {
 }
 
 interface StoryCardRepository : JpaRepository<StoryCard, Long> {
-    @EntityGraph(attributePaths = ["person", "person.region", "life", "event", "event.participants", "event.participants.person"])
+    @EntityGraph(attributePaths = ["person", "person.region", "life", "event", "event.participants", "event.participants.person", "event.participants.person.region"])
     fun findByMomentIdOrderByPosition(momentId: String): List<StoryCard>
 
     @Query("select new dev.wholivedwhen.repository.CardCount(c.moment.id, count(c)) from StoryCard c group by c.moment.id")

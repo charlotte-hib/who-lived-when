@@ -38,7 +38,8 @@ export type Life = {
   endYear: number;
 };
 
-export type Participant = { slug: string; name: string; role: string };
+/** Someone in an event, with their part in it, e.g. "author". */
+export type Participant = { person: Person; role: string };
 
 export type Event = {
   id: string;

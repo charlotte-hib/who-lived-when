@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { DoorCard } from "@/components/door-card";
 import { LifeInTime } from "@/components/life-in-time";
-import { LifeChip, PersonChip } from "@/components/person-chip";
+import { LifeChip } from "@/components/life";
+import { PersonChip } from "@/components/person-chip";
 import { PersonAvatar } from "@/components/person-avatar";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
@@ -83,7 +84,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
           <Section title={`Around them in ${person.region}, ${formatYear(year)}`}>
             <div className="flex flex-wrap gap-2">
               {detail.aroundPeople.map((other) => <PersonChip key={other.slug} person={other} year={year} />)}
-              {detail.aroundLives.map((life) => <LifeChip key={life.id} life={life} />)}
+              {detail.aroundLives.map((life) => <LifeChip key={life.id} life={life} around={detail.aroundPeople} year={year} />)}
             </div>
           </Section>
         )}

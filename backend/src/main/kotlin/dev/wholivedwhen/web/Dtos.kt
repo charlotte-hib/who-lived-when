@@ -52,7 +52,8 @@ data class LifeDto(
     val endYear: Int,
 )
 
-data class ParticipantDto(val slug: String, val name: String, val role: String)
+/** Someone in an event, with their part in it, e.g. "author". */
+data class ParticipantDto(val person: PersonDto, val role: String)
 
 data class EventDto(
     val id: String,
@@ -157,7 +158,5 @@ interface ApiMapper {
     @Mapping(target = "region", source = "region.name")
     fun toDto(person: Person): PersonDto
 
-    @Mapping(target = "slug", source = "person.slug")
-    @Mapping(target = "name", source = "person.name")
     fun toDto(participant: EventParticipant): ParticipantDto
 }
