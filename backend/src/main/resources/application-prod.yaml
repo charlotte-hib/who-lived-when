@@ -1,0 +1,11 @@
+# Production profile (SPRING_PROFILES_ACTIVE=prod), used by the Docker image.
+spring:
+  h2:
+    console:
+      # Never reachable publicly.
+      enabled: false
+
+app:
+  wikipedia:
+    # Wikimedia asks for a contact in the User-Agent.
+    user-agent: WhoLivedWhen/0.1 (https://app.example.com)
