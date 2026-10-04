@@ -158,11 +158,21 @@ export function StoryPlayer({ story }: { story: Story }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/20" />
 
       <div className="absolute inset-x-4 top-4 z-20 flex items-start gap-3">
-        <div className="flex flex-1 gap-1 pt-2" aria-hidden>
+        {/* Each bar goes to its card. The line is thin, so the button around it is taller, to be easy to tap. */}
+        <nav aria-label="Story cards" className="-mt-1 flex flex-1">
           {[...cards, null].map((_, i) => (
-            <span key={i} className={cn("h-0.5 flex-1 rounded-full", i <= index ? "bg-white" : "bg-white/30")} />
+            <button
+              key={i}
+              type="button"
+              onClick={() => setTurned(i)}
+              aria-label={i === cards.length ? "Where next?" : `Card ${i + 1} of ${cards.length}`}
+              aria-current={i === index ? "step" : undefined}
+              className="group flex-1 px-0.5 py-3"
+            >
+              <span className={cn("block h-0.5 rounded-full transition-colors group-hover:bg-white", i <= index ? "bg-white" : "bg-white/30")} />
+            </button>
           ))}
-        </div>
+        </nav>
         <button type="button" onClick={close} aria-label="Close story" className={cn(buttonVariants({ variant: "outline", size: "icon" }), "rounded-full border-white/30 bg-black/30")}>
           <X />
         </button>

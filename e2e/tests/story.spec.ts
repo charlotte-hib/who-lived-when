@@ -83,3 +83,19 @@ test("a person opens over the story, and their full page leads back to it", asyn
   await expect(page).toHaveURL(`${storyUrl}#card=${at + 1}`);
   await expect(page.getByRole("button", { name: `More about ${name}` })).toBeVisible();
 });
+
+test("the bars at the top jump to their card", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Play the story", exact: true }).click();
+  await expect(page).toHaveURL(/\/moment\/[^/]+\/story$/);
+  const storyUrl = page.url();
+  const bars = page.getByRole("navigation", { name: "Story cards" });
+
+  await bars.getByRole("button", { name: "Where next?" }).click();
+  await expect(page.getByRole("heading", { name: "Step through another door" })).toBeVisible();
+  await expect(bars.getByRole("button", { name: "Where next?" })).toHaveAttribute("aria-current", "step");
+
+  await bars.getByRole("button", { name: /^Card 1 of / }).click();
+  await expect(page).toHaveURL(storyUrl);
+  await expect(page.getByRole("heading", { name: "Step through another door" })).toHaveCount(0);
+});
