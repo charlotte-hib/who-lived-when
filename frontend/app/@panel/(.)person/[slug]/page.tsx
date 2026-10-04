@@ -4,7 +4,7 @@ import { LifeChip } from "@/components/life";
 import { LifeInTime } from "@/components/life-in-time";
 import { PersonChip } from "@/components/person-chip";
 import { PersonAbout, PersonHeader } from "@/components/person-header";
-import { TrailStep } from "@/components/person-panel";
+import { FullPageButton, TrailStep } from "@/components/person-panel";
 import { Section } from "@/components/section";
 import { buttonVariants } from "@/components/ui/button";
 import { getPerson } from "@/lib/api";
@@ -28,10 +28,9 @@ export default async function PersonPanelPage({ params, searchParams }: PageProp
       <div className="grid gap-5">
         <PersonHeader detail={detail} />
         <PersonAbout detail={detail} />
-        {/* A plain link, so the full page loads instead of this panel. */}
-        <a href={`/person/${person.slug}?year=${year}`} className={cn(buttonVariants({ variant: "outline" }), "w-fit rounded-full")}>
+        <FullPageButton href={`/person/${person.slug}?year=${year}`} className={cn(buttonVariants({ variant: "outline" }), "w-fit rounded-full")}>
           Open the full page
-        </a>
+        </FullPageButton>
       </div>
 
       {detail.connections.length > 0 && (

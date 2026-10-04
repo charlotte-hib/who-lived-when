@@ -11,6 +11,7 @@ import { DoorCard } from "@/components/door-card";
 import { EventDetails, sourceLabel } from "@/components/event-details";
 import { LifeDetails, LifeMark } from "@/components/life";
 import { PersonAvatar } from "@/components/person-avatar";
+import { TrailOrigin } from "@/components/person-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { titleOf } from "@/lib/moments";
 import type { Story, StoryCard } from "@/lib/types";
@@ -214,6 +215,7 @@ export function StoryPlayer({ story }: { story: Story }) {
         </AnimatePresence>
       </motion.div>
 
+      <TrailOrigin label={`The story of ${titleOf(moment)}`} />
       <DetailPanel open={moreOpen} onOpenChange={setMoreOpen} kicker={card?.type === "EVENT" ? "Documented event" : "Everyday life"}>
         {card?.life && (
           <LifeDetails

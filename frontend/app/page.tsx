@@ -1,5 +1,6 @@
 import { FeaturedStory } from "@/components/featured-story";
 import { MomentTile } from "@/components/moment-tile";
+import { TrailOrigin } from "@/components/person-panel";
 import { SiteHeader } from "@/components/site-header";
 import { StoryMap } from "@/components/story-map";
 import { getMoments } from "@/lib/api";
@@ -13,6 +14,7 @@ export default async function Home() {
 
   return (
     <>
+      <TrailOrigin label="Home" />
       <SiteHeader overlay />
       <main>
         {stories.length > 0 && <FeaturedStory stories={stories} initialIndex={featured} />}
