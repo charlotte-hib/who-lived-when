@@ -162,8 +162,14 @@ export function StoryPlayer({ story }: { story: Story }) {
         <AnimatePresence mode="wait" onExitComplete={() => dragX.set(0)}>
           <motion.div
             key={index}
-            // Only the doors can outgrow a small screen; other cards keep vertical swipes for "read more".
-            className={cn("pointer-events-auto", atEnd && "max-h-[calc(100dvh-7rem)] touch-pan-y overflow-y-auto overscroll-contain")}
+            // A card's text covers much of a phone screen, so taps on it fall through to the tap zones; only its links
+            // and buttons catch them. Only the doors can outgrow a small screen; other cards keep vertical swipes for
+            // "read more".
+            className={cn(
+              atEnd
+                ? "pointer-events-auto max-h-[calc(100dvh-7rem)] touch-pan-y overflow-y-auto overscroll-contain"
+                : "[&_a]:pointer-events-auto [&_button]:pointer-events-auto",
+            )}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
