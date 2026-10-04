@@ -4,8 +4,3 @@ spring:
     console:
       # Never reachable publicly.
       enabled: false
-
-app:
-  wikipedia:
-    # Wikimedia asks for a contact in the User-Agent.
-    user-agent: WhoLivedWhen/0.1 (https://wholivedwhen.charlottehibert.com)
