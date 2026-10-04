@@ -30,6 +30,9 @@ updates:
       # typescript-eslint does not support TypeScript 7 yet.
       - dependency-name: typescript
         versions: [">=7"]
+      # eslint-config-next's plugins (import, jsx-a11y) support ESLint 9 at most.
+      - dependency-name: eslint
+        versions: [">=10"]
       # Follows the Node major that runs the app (.nvmrc, frontend/Dockerfile): bumped by hand with it.
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
@@ -49,6 +52,13 @@ updates:
     directories: [/backend, /frontend]
     schedule:
       interval: weekly
+    ignore:
+      # The runtimes stay on LTS majors, which Dependabot cannot tell apart from the others (Node 26 is
+      # not LTS until late October, Java 26 never is). Bumped by hand with .nvmrc or .java-version.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+      - dependency-name: eclipse-temurin
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker-compose
     directory: /
     schedule:
