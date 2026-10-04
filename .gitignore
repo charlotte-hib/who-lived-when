@@ -3,3 +3,4 @@
 *.iml
 .env
 .env.previous
+site.env
