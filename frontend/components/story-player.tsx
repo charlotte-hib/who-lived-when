@@ -3,8 +3,8 @@
 import { BookOpen, ChevronRight, ChevronUp, X } from "lucide-react";
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from "motion/react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { type ReactNode, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArtworkImage } from "@/components/artwork-image";
 import { DetailPanel } from "@/components/detail-panel";
 import { DoorCard } from "@/components/door-card";
@@ -26,11 +26,17 @@ const DRAG_RATIO = 0.5;
 /** How far a card can be pulled up before "read more" opens. */
 const PULL_PX = 40;
 
-/** `?card=` is 1-based and counts the doors as the last card, so a link or a back button returns to the same page. */
-function cardIndex(param: string | null, last: number) {
-  const card = Number(param);
+/**
+ * `#card=` is 1-based and counts the doors as the last card, so a link or a back button returns to the same page.
+ * It is in the hash, not the query: once the query changes in place, Next.js no longer matches it to the rendered
+ * page and loads the next link (a person) as a full page instead of opening it in the panel.
+ */
+function cardIndex(hash: string, last: number) {
+  const card = Number(new URLSearchParams(hash.slice(1)).get("card"));
   return Number.isInteger(card) && card >= 1 ? Math.min(card, last + 1) - 1 : 0;
 }
+
+const noChanges = () => () => {};
 
 const personHref = (card: StoryCard) => `/person/${card.person!.slug}${card.year ? `?year=${card.year}` : ""}`;
 
@@ -44,9 +50,11 @@ const hasMore = (card: StoryCard | undefined) =>
  */
 export function StoryPlayer({ story }: { story: Story }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { moment, cards, doors } = story;
-  const [index, setIndex] = useState(() => cardIndex(searchParams.get("card"), cards.length));
+  // The server cannot see the hash, so it renders the first card and the browser moves to the one in the hash.
+  const hash = useSyncExternalStore(noChanges, () => window.location.hash, () => null);
+  const [turned, setTurned] = useState<number | null>(null);
+  const index = turned ?? (hash === null ? 0 : cardIndex(hash, cards.length));
   const atEnd = index === cards.length;
   const card = cards[index];
   const art = card?.art ?? moment.art;
@@ -59,7 +67,7 @@ export function StoryPlayer({ story }: { story: Story }) {
   const dragged = useRef(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const step = useCallback((by: number) => setIndex((current) => Math.min(cards.length, Math.max(0, current + by))), [cards.length]);
+  const step = useCallback((by: number) => setTurned(Math.min(cards.length, Math.max(0, index + by))), [cards.length, index]);
   const close = useCallback(() => router.push(`/moment/${moment.id}`), [router, moment.id]);
   const tap = (by: number) => {
     if (!dragged.current) step(by);
@@ -72,11 +80,11 @@ export function StoryPlayer({ story }: { story: Story }) {
   }, [card, router]);
 
   useEffect(() => {
+    if (turned === null) return;
     const url = new URL(window.location.href);
-    if (index === 0) url.searchParams.delete("card");
-    else url.searchParams.set("card", String(index + 1));
+    url.hash = turned === 0 ? "" : `card=${turned + 1}`;
     window.history.replaceState(null, "", url);
-  }, [index]);
+  }, [turned]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -112,7 +120,7 @@ export function StoryPlayer({ story }: { story: Story }) {
         const next = Math.min(cards.length, Math.max(0, index + by));
         const swiped = Math.abs(offset.x) > Math.abs(offset.y) && (Math.abs(offset.x) > SWIPE_PX || Math.abs(velocity.x) > SWIPE_VELOCITY);
         if (swiped && next !== index) {
-          setIndex(next);
+          setTurned(next);
           animate(dragX, -by * TURN_PX, { duration: 0.25, ease: "easeOut" });
         } else {
           animate(dragX, 0, { type: "spring", stiffness: 400, damping: 35 });
