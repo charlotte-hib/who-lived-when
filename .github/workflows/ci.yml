@@ -88,6 +88,42 @@ jobs:
           path: http/reports/
           if-no-files-found: ignore
 
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e
+    env:
+      COMPOSE: docker compose -f docker-compose.yml -f e2e/compose.yaml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Start the app
+        working-directory: .
+        run: $COMPOSE up --build --detach --wait
+      - name: Wait for the backend behind the frontend
+        run: timeout 180 sh -c 'until curl -fsS -o /dev/null http://localhost:3000/api/moments; do sleep 2; done'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - name: Upload the test report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+      - name: Show the app logs
+        if: failure()
+        working-directory: .
+        run: $COMPOSE logs
+
   images:
     name: Image (${{ matrix.service }})
     needs: [backend, frontend]
