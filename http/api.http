@@ -80,3 +80,27 @@ Accept: application/json
         client.assert(response.body.status === 404, `body status ${response.body.status}`);
     });
 %}
+
+### Visitor event: a story started, sent like the frontend's beacon (text/plain)
+POST {{baseUrl}}/api/events
+Content-Type: text/plain;charset=UTF-8
+
+{"name":"story_started","moment":"paris-1870s"}
+
+> {%
+    client.test("204, counted", () => {
+        client.assert(response.status === 204, `status ${response.status}`);
+    });
+%}
+
+### Visitor event outside the vocabularies: a moment that does not exist
+POST {{baseUrl}}/api/events
+Content-Type: application/json
+
+{"name":"story_started","moment":"atlantis"}
+
+> {%
+    client.test("400, not counted", () => {
+        client.assert(response.status === 400, `status ${response.status}`);
+    });
+%}
