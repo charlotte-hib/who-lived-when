@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DetailPanel } from "@/components/detail-panel";
+import { openingFullPageFromPanel, personSource, track } from "@/lib/analytics";
 
 type Step = { slug: string; name: string; href: string };
 /** Carried from the panel to the full page, in that page's history entry. `origin` names the page the panel was opened over. */
@@ -39,15 +40,18 @@ export function PersonPanel({ kicker, children }: { kicker: string; children: Re
   const [trail, setTrail] = useState<Step[]>([]);
   const [origin] = useState(() => currentOrigin);
 
+  // The first person is counted as opened from the page underneath (or the search box), the next ones from the panel.
+  const opened = useRef(false);
+
   // Revisiting someone already on the trail cuts it back to them.
-  const visit = useCallback(
-    (step: Step) =>
-      setTrail((current) => {
-        const at = current.findIndex((other) => other.slug === step.slug);
-        return at === -1 ? [...current, step] : current.slice(0, at + 1);
-      }),
-    [],
-  );
+  const visit = useCallback((step: Step) => {
+    track({ name: "person_panel_opened", source: opened.current ? "panel" : personSource() });
+    opened.current = true;
+    setTrail((current) => {
+      const at = current.findIndex((other) => other.slug === step.slug);
+      return at === -1 ? [...current, step] : current.slice(0, at + 1);
+    });
+  }, []);
 
   // The full page is a different render of the same URL, so it needs a real page load. Replacing the panel's
   // history entry keeps Back going to the page the panel was opened over, and the trail goes along.
@@ -56,6 +60,7 @@ export function PersonPanel({ kicker, children }: { kicker: string; children: Re
       try {
         sessionStorage.setItem(TRAIL_KEY, JSON.stringify({ origin, steps: trail } satisfies Trail));
       } catch {}
+      openingFullPageFromPanel();
       window.location.replace(href);
     },
     [origin, trail],
