@@ -33,6 +33,18 @@ updates:
       # Follows the Node major that runs the app (.nvmrc, frontend/Dockerfile): bumped by hand with it.
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+    groups:
+      e2e:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # Follows the Node major in .nvmrc, like the frontend's.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule:
