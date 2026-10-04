@@ -24,6 +24,7 @@ val mapstructVersion = "1.6.3"
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-h2console")
+	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-restclient")
@@ -34,6 +35,7 @@ dependencies {
 	implementation("com.anthropic:anthropic-java:2.68.0")
 	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	runtimeOnly("com.h2database:h2")
+	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-restclient-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
