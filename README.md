@@ -112,7 +112,7 @@ echo "GF_SECURITY_ADMIN_PASSWORD=$(openssl rand -base64 24)" > grafana.env
 docker compose --profile monitoring up --build
 ```
 
-Then open http://localhost:3001 and sign in as `admin`. On the server, `deploy/deploy.sh` starts Prometheus and Grafana once `grafana.env` exists next to `.env`; reach Grafana through an SSH tunnel (`ssh -L 3001:localhost:3001 <server>`, then http://localhost:3001). The dashboards are read from the repository: edit them in Grafana, export the JSON into `monitoring/grafana/dashboards/` and commit it.
+Then open http://localhost:3001 and sign in as `admin`. On the server, `deploy/deploy.sh` starts Prometheus and Grafana once `grafana.env` exists next to `.env`; reach Grafana through an SSH tunnel (`ssh -L 3001:localhost:3001 <server>`, then http://localhost:3001). To serve it under another address, for example through `tailscale serve`, add `GF_SERVER_ROOT_URL=<that address>` to the server's `grafana.env`, which overrides `monitoring/grafana/defaults.env`. The dashboards are read from the repository: edit them in Grafana, export the JSON into `monitoring/grafana/dashboards/` and commit it.
 
 ## Deployment
 
