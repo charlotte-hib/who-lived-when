@@ -88,12 +88,14 @@ export function StoryPlayer({ story }: { story: Story }) {
     window.history.replaceState(null, "", url);
   }, [turned]);
 
-  // Counts each card once per visit, for drop-off along the story; the doors after the last card complete it.
+  // Counts each card once per visit, for drop-off along the story; the doors after the last card complete it,
+  // but only once the last card was read: jumping straight to the doors from the bars at the top does not.
   // Not while hydrating (no hash yet): the first card shown then may not be the one the visitor lands on.
   const reached = useRef(new Set<number>());
   useEffect(() => track({ name: "story_started", moment: moment.id }), [moment.id]);
   useEffect(() => {
     if (hash === null || reached.current.has(index)) return;
+    if (index === cards.length && !reached.current.has(cards.length - 1)) return;
     reached.current.add(index);
     track(index < cards.length
       ? { name: "story_card_reached", moment: moment.id, card: index + 1 }
