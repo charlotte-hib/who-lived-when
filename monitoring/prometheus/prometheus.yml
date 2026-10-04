@@ -1,0 +1,22 @@
+# Prometheus for Who Lived When: scrapes the backend's Actuator endpoint on the Compose network.
+# Mounted as a directory (a single-file bind mount would keep the old file after `git checkout`), and
+# reloaded by Prometheus itself when it changes (--config.auto-reload), so a deploy picks up edits.
+
+global:
+  # Plenty for a small site, and keeps the stored samples (and memory) small.
+  scrape_interval: 30s
+  scrape_timeout: 10s
+
+storage:
+  tsdb:
+    retention:
+      time: 30d
+      # A cap on disk use in case series grow more than expected; the oldest data goes first.
+      size: 1GB
+
+scrape_configs:
+  - job_name: backend
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # Actuator's own port (application-prod.yaml), never published outside Compose.
+      - targets: ["backend:8081"]
