@@ -1,0 +1,82 @@
+# End-to-end smoke tests for the public API, against the seed data in backend/src/main/resources/seed.
+# Start the backend with Wikipedia enrichment off (--app.wikipedia.enrich=false), then run a request
+# from IntelliJ with the "local" environment, or all of them with the HTTP Client CLI:
+#   ijhttp --env-file http/http-client.env.json --env local http/api.http
+
+### Moments: the published moments, with who governed and the length of their story
+GET {{baseUrl}}/api/moments
+Accept: application/json
+
+> {%
+    client.test("200 with JSON", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+    });
+    client.test("Paris in the 1870s, under the Third Republic, with a 7-card story", () => {
+        const paris = response.body.find(m => m.id === "paris-1870s");
+        client.assert(paris !== undefined, "paris-1870s is missing");
+        client.assert(paris.governedBy === "Third Republic", `governedBy ${paris.governedBy}`);
+        client.assert(paris.storyCards === 7, `storyCards ${paris.storyCards}`);
+    });
+%}
+
+### Story: a moment's cards in order, then its doors
+GET {{baseUrl}}/api/moments/paris-1870s/story
+Accept: application/json
+
+> {%
+    client.test("200 with JSON", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+    });
+    client.test("Cards in story order, then three doors", () => {
+        const types = response.body.cards.map(c => c.type).join(",");
+        client.assert(types === "SCENE,SCENE,PERSON,PERSON,LIFE,EVENT,EVENT", `card types ${types}`);
+        client.assert(response.body.cards[2].person.slug === "georges-clemenceau", "the third card is not Clemenceau");
+        client.assert(response.body.doors.length === 3, `${response.body.doors.length} doors`);
+    });
+%}
+
+### Person in a year: Zola in 1875, in the world around him
+GET {{baseUrl}}/api/people/emile-zola?year=1875
+Accept: application/json
+
+> {%
+    client.test("200 with JSON", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+    });
+    client.test("Aged 35, in Paris in the 1870s", () => {
+        client.assert(response.body.person.name === "Émile Zola", `name ${response.body.person.name}`);
+        client.assert(response.body.year === 1875, `year ${response.body.year}`);
+        client.assert(response.body.age === 35, `age ${response.body.age}`);
+        client.assert(response.body.worldMoment.id === "paris-1870s", `worldMoment ${response.body.worldMoment.id}`);
+    });
+%}
+
+### Search: people and moments, ignoring accents
+GET {{baseUrl}}/api/search?q=zola
+Accept: application/json
+
+> {%
+    client.test("200 with JSON", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+    });
+    client.test("Émile Zola comes first", () => {
+        const first = response.body.people[0];
+        client.assert(first !== undefined && first.slug === "emile-zola", `first person ${first && first.slug}`);
+    });
+%}
+
+### Unknown moment: 404
+GET {{baseUrl}}/api/moments/atlantis
+Accept: application/json
+
+> {%
+    client.test("404 with a JSON error", () => {
+        client.assert(response.status === 404, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+        client.assert(response.body.status === 404, `body status ${response.body.status}`);
+    });
+%}

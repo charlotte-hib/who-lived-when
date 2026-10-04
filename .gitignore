@@ -4,3 +4,6 @@
 .env
 .env.previous
 site.env
+# HTTP Client CLI: JUnit reports and personal overrides.
+http/reports/
+http/http-client.private.env.json
