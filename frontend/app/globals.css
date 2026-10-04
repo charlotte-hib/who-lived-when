@@ -143,4 +143,9 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 leaves buttons with the default cursor; they should look as clickable as links. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
 }
