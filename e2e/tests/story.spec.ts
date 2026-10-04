@@ -32,12 +32,12 @@ test("the featured story turns page by page with taps on the card text", async (
   const { cards } = (await response.json()) as { cards: StoryCard[] };
   expect(cards.length).toBeGreaterThan(1);
 
-  // `?card=` is 1-based and the doors come after the last card.
+  // `#card=` is 1-based and the doors come after the last card.
   for (const [index, card] of cards.entries()) {
     const body = page.getByText(bodyOf(card));
     await expect(body).toBeVisible();
     await tapThrough(body, hasTouch);
-    await expect(page).toHaveURL(new RegExp(`[?&]card=${index + 2}$`));
+    await expect(page).toHaveURL(new RegExp(`#card=${index + 2}$`));
   }
 
   await expect(page.getByRole("heading", { name: "Step through another door" })).toBeVisible();
