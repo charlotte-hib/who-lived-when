@@ -1,0 +1,9 @@
+# Layered over docker-compose.yml for the end-to-end tests:
+#   docker compose -f docker-compose.yml -f e2e/compose.yaml up --build --detach --wait
+# The tests only need the seed data, so the backend skips the Wikipedia enrichment: no calls to Wikipedia
+# from CI, and the people stay exactly as seeded.
+
+services:
+  backend:
+    environment:
+      APP_WIKIPEDIA_ENRICH: "false"
