@@ -34,6 +34,21 @@ Or both in Docker, on http://localhost:3000:
 docker compose up --build
 ```
 
+## End-to-end tests
+
+A few Playwright tests (`e2e/`) walk the main journeys in a desktop browser and on a phone with a touchscreen: playing a story by tapping its cards, searching for someone, and opening who was at a documented event. They run against a site that is already up (`BASE_URL`, http://localhost:3000 by default), so start the app first, in Docker or with the two commands above:
+
+```sh
+docker compose -f docker-compose.yml -f e2e/compose.yaml up --build --detach --wait   # optional: skips Wikipedia
+cd e2e
+nvm use
+npm ci
+npx playwright test
+npx playwright show-report   # after a failure: traces and screenshots
+```
+
+Outside CI they drive the installed Google Chrome; CI installs Playwright's Chromium. The tests live in their own package, outside `frontend/`, so none of it ends up in an image.
+
 ## How it works
 
 - **Moments are the way in.** A `Moment` is a place over a few years with a hook, a public-domain painting, "the world around" it (who governs, everyday life, arts and ideas, meanwhile elsewhere), a story of ordered `StoryCard`s (scene, person, everyday life, documented event) and curated `Door`s to other moments ("Meanwhile, elsewhere", "Follow Zola and Clemenceau"). Moments without a written story get doors to the nearest moments, here and elsewhere.
@@ -85,7 +100,7 @@ CI runs the same file against the backend image (the "API tests" job), never aga
 
 The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
 
-1. **Every pull request** runs the backend tests, the frontend lint and build, and the API tests against the backend image. `main` is protected by a ruleset: changes land only through pull requests that pass both checks, with linear history and no force push or deletion.
+1. **Every pull request** runs the backend tests, the frontend lint and build, the API tests against the backend image, and the end-to-end tests against the app started with Docker Compose. `main` is protected by a ruleset: changes land only through pull requests that pass the backend tests and the frontend lint and build, with linear history and no force push or deletion.
 2. **On `main`**, both images are built once, pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
 3. **The deploy job** (GitHub environment `production`) verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
 4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
