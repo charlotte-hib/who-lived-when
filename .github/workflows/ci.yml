@@ -1,4 +1,5 @@
-# Pull requests: test and build. Main: also publish signed images to GHCR and deploy them to the VPS.
+# Pull requests: test, build each image once, then run the API and end-to-end tests against those images.
+# Main: also publish the same images to GHCR, signed, and deploy them to the VPS once every test has passed.
 # No long-lived secrets: GHCR uses the job token, Tailscale and SSH use GitHub's OIDC identity.
 name: CI/CD
 
@@ -51,79 +52,6 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
-  # Smoke tests the backend image over real HTTP with the requests in http/api.http.
-  # Only ever against this local container: production is health-checked by deploy/deploy.sh.
-  api:
-    name: API tests
-    runs-on: ubuntu-latest
-    env:
-      HTTP_CLIENT_IMAGE: jetbrains/intellij-http-client:2026.2.3@sha256:a69390757348c3a758ca36f7b213903929a5799c23702fb7aae2d222d90c59ef
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build the backend image
-        run: docker build --tag backend:api-tests backend
-      - name: Start the backend
-        # Without Wikipedia enrichment the data is exactly the seed, and the job does not depend on Wikipedia.
-        run: |
-          docker run --detach --name backend --publish 8080:8080 \
-            --env APP_WIKIPEDIA_ENRICH=false --env SPRING_PROFILES_ACTIVE=prod backend:api-tests
-      - name: Wait for the API
-        run: |
-          for _ in $(seq 60); do
-            curl --fail --silent --output /dev/null http://localhost:8080/api/moments && exit 0
-            sleep 2
-          done
-          exit 1
-      - name: Run the HTTP Client tests
-        run: |
-          docker run --rm --network host --volume "$PWD/http:/workdir" "$HTTP_CLIENT_IMAGE" \
-            --env-file http-client.env.json --env ci --report --no-progress api.http
-      - name: Backend logs
-        if: failure()
-        run: docker logs backend
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: failure()
-        with:
-          name: api-test-report
-          path: http/reports/
-          if-no-files-found: ignore
-
-  e2e:
-    name: End-to-end
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: e2e
-    env:
-      COMPOSE: docker compose -f docker-compose.yml -f e2e/compose.yaml
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Start the app
-        working-directory: .
-        run: $COMPOSE up --build --detach --wait
-      - name: Wait for the backend behind the frontend
-        run: timeout 180 sh -c 'until curl -fsS -o /dev/null http://localhost:3000/api/moments; do sleep 2; done'
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: e2e/package-lock.json
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
-      - name: Upload the test report
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playwright-report
-          path: e2e/playwright-report
-          retention-days: 7
-      - name: Show the app logs
-        if: failure()
-        working-directory: .
-        run: $COMPOSE logs
-
   images:
     name: Image (${{ matrix.service }})
     needs: [backend, frontend]
@@ -153,30 +81,45 @@ jobs:
         with:
           images: ${{ env.IMAGE }}
           tags: |
-            type=sha,format=long
+            type=raw,value=sha-${{ github.sha }}
             type=raw,value=latest,enable={{is_default_branch}}
-      - id: build
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.service }}
-          push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # The only build of this image in the run: the test jobs load this file and main pushes it.
+          # Provenance comes from the attest step below, not from BuildKit.
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+          provenance: false
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,scope=${{ matrix.service }},mode=max
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: image-${{ matrix.service }}
+          path: ${{ runner.temp }}/image.tar
+          retention-days: 1
+      - name: Push to GHCR
+        id: push
+        if: env.PUBLISH == 'true'
+        run: |
+          docker load --input "$RUNNER_TEMP/image.tar"
+          docker push --all-tags "$IMAGE"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:sha-$GITHUB_SHA")
+          echo "digest=${digest#*@}" >> "$GITHUB_OUTPUT"
       - name: Attest build provenance (SLSA)
         if: env.PUBLISH == 'true'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ${{ env.IMAGE }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
           create-storage-record: false
       - name: Generate SBOM (SPDX)
         if: env.PUBLISH == 'true'
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
-          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          image: ${{ env.IMAGE }}@${{ steps.push.outputs.digest }}
           format: spdx-json
           output-file: sbom.spdx.json
           upload-artifact: false
@@ -185,14 +128,102 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ${{ env.IMAGE }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-digest: ${{ steps.push.outputs.digest }}
           sbom-path: sbom.spdx.json
           push-to-registry: true
           create-storage-record: false
 
+  # Smoke tests the backend image over real HTTP with the requests in http/api.http.
+  # Only ever against this local container: production is health-checked by deploy/deploy.sh.
+  api:
+    name: API tests
+    needs: images
+    runs-on: ubuntu-latest
+    env:
+      BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend:sha-${{ github.sha }}
+      HTTP_CLIENT_IMAGE: jetbrains/intellij-http-client:2026.2.3@sha256:a69390757348c3a758ca36f7b213903929a5799c23702fb7aae2d222d90c59ef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: image-backend
+          path: ${{ runner.temp }}
+      - name: Load the backend image
+        run: docker load --input "$RUNNER_TEMP/image.tar"
+      - name: Start the backend
+        # Without Wikipedia enrichment the data is exactly the seed, and the job does not depend on Wikipedia.
+        run: |
+          docker run --detach --name backend --publish 8080:8080 \
+            --env APP_WIKIPEDIA_ENRICH=false --env SPRING_PROFILES_ACTIVE=prod "$BACKEND_IMAGE"
+      - name: Wait for the API
+        run: |
+          for _ in $(seq 60); do
+            curl --fail --silent --output /dev/null http://localhost:8080/api/moments && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Run the HTTP Client tests
+        run: |
+          docker run --rm --network host --volume "$PWD/http:/workdir" "$HTTP_CLIENT_IMAGE" \
+            --env-file http-client.env.json --env ci --report --no-progress api.http
+      - name: Backend logs
+        if: failure()
+        run: docker logs backend
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: api-test-report
+          path: http/reports/
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end
+    needs: images
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e
+    env:
+      COMPOSE: docker compose -f docker-compose.yml -f e2e/compose.yaml
+      BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend:sha-${{ github.sha }}
+      FRONTEND_IMAGE: ghcr.io/${{ github.repository }}-frontend:sha-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: image-*
+          path: ${{ runner.temp }}/images
+      - name: Start the app from the images built above
+        working-directory: .
+        run: |
+          for image in "$RUNNER_TEMP"/images/*/image.tar; do docker load --input "$image"; done
+          $COMPOSE up --no-build --pull never --detach --wait
+      - name: Wait for the backend behind the frontend
+        run: timeout 180 sh -c 'until curl -fsS -o /dev/null http://localhost:3000/api/moments; do sleep 2; done'
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - name: Upload the test report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+      - name: Show the app logs
+        if: failure()
+        working-directory: .
+        run: $COMPOSE logs
+
   deploy:
     name: Deploy to production
-    needs: images
+    needs: [images, api, e2e]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production

@@ -100,9 +100,9 @@ CI runs the same file against the backend image (the "API tests" job), never aga
 
 The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
 
-1. **Every pull request** runs the backend tests, the frontend lint and build, the API tests against the backend image, and the end-to-end tests against the app started with Docker Compose. `main` is protected by a ruleset: changes land only through pull requests that pass the backend tests and the frontend lint and build, with linear history and no force push or deletion.
-2. **On `main`**, both images are built once, pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
-3. **The deploy job** (GitHub environment `production`) verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
+1. **Every pull request** runs the backend tests and the frontend lint and build, then builds each image once (saved for a day as a workflow artifact) and runs the API tests and the end-to-end tests against those exact images. `main` is protected by a ruleset: changes land only through pull requests that pass the backend tests and the frontend lint and build, with linear history and no force push or deletion.
+2. **On `main`**, the same images are pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
+3. **The deploy job** (GitHub environment `production`) waits for the API and end-to-end tests, verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
 4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
 
 Dependabot keeps Actions (pinned by commit), Gradle, npm and base images up to date.
