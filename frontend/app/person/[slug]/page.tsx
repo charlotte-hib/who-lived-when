@@ -3,6 +3,7 @@ import { Connections } from "@/components/connections";
 import { DoorCard } from "@/components/door-card";
 import { LifeInTime } from "@/components/life-in-time";
 import { LifeChip } from "@/components/life";
+import { PageView } from "@/components/page-view";
 import { PersonChip } from "@/components/person-chip";
 import { PersonAbout, PersonHeader } from "@/components/person-header";
 import { FullPageTrail, TrailOrigin } from "@/components/person-panel";
@@ -23,6 +24,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
 
   return (
     <>
+      <PageView page="person" />
       <SiteHeader />
       <TrailOrigin label={person.name} />
       <main className="mx-auto grid w-full max-w-3xl gap-10 px-4 py-10">

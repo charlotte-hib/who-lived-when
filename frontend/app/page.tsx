@@ -1,5 +1,6 @@
 import { FeaturedStory } from "@/components/featured-story";
 import { MomentTile } from "@/components/moment-tile";
+import { PageView } from "@/components/page-view";
 import { TrailOrigin } from "@/components/person-panel";
 import { SiteHeader } from "@/components/site-header";
 import { StoryMap } from "@/components/story-map";
@@ -14,6 +15,7 @@ export default async function Home() {
 
   return (
     <>
+      <PageView page="home" />
       <TrailOrigin label="Home" />
       <SiteHeader overlay />
       <main>

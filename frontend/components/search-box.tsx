@@ -2,8 +2,9 @@
 
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { PersonAvatar } from "@/components/person-avatar";
+import { openingFromSearch, track } from "@/lib/analytics";
 import { fetchSearch } from "@/lib/api-browser";
 import { momentHref, titleOf } from "@/lib/moments";
 import type { SearchResults } from "@/lib/types";
@@ -12,7 +13,7 @@ import { formatLifespan } from "@/lib/years";
 
 const DEBOUNCE_MS = 150;
 
-type Option = { key: string; href: string; title: string; detail: string; thumbnail: ReactNode };
+type Option = { key: string; kind: "person" | "moment"; href: string; title: string; detail: string; thumbnail: ReactNode };
 const EMPTY: SearchResults = { people: [], moments: [] };
 
 /** Search people and moments; picking one goes straight to it. */
@@ -22,12 +23,19 @@ export function SearchBox({ className }: { className?: string }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(EMPTY);
   const [active, setActive] = useState(0);
+  // One search is counted from its first results until the box is cleared, however many letters are typed.
+  const searched = useRef(false);
 
   useEffect(() => {
-    if (query.trim().length < 2) return;
+    if (query.trim().length < 2) {
+      searched.current = false;
+      return;
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => {
       fetchSearch(query, controller.signal).then((next) => {
+        if (!searched.current) track({ name: "search_used" });
+        searched.current = true;
         setResults(next);
         setActive(0);
       }).catch(() => { /* aborted or offline: keep the previous results */ });
@@ -41,6 +49,7 @@ export function SearchBox({ className }: { className?: string }) {
   const options: Option[] = query.trim().length < 2 ? [] : [
     ...results.moments.map((moment) => ({
       key: `m-${moment.id}`,
+      kind: "moment" as const,
       href: momentHref(moment),
       title: titleOf(moment),
       detail: `${moment.storyCards > 0 ? "Story" : "Moment"} · ${moment.region}`,
@@ -50,6 +59,7 @@ export function SearchBox({ className }: { className?: string }) {
     })),
     ...results.people.map((person) => ({
       key: `p-${person.slug}`,
+      kind: "person" as const,
       href: `/person/${person.slug}`,
       title: person.name,
       detail: `${formatLifespan(person.birthYear, person.deathYear)} · ${person.region}`,
@@ -57,7 +67,9 @@ export function SearchBox({ className }: { className?: string }) {
     })),
   ];
 
-  const go = (href: string) => {
+  const go = ({ kind, href }: Option) => {
+    track({ name: "search_result_opened", kind });
+    if (kind === "person") openingFromSearch();
     setQuery("");
     setResults(EMPTY);
     router.push(href);
@@ -69,7 +81,7 @@ export function SearchBox({ className }: { className?: string }) {
       event.preventDefault();
       setActive((current) => (current + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length);
     } else if (event.key === "Enter") {
-      go(options[active].href);
+      go(options[active]);
     } else if (event.key === "Escape") {
       setQuery("");
     }
@@ -97,7 +109,7 @@ export function SearchBox({ className }: { className?: string }) {
               <button
                 type="button"
                 onMouseEnter={() => setActive(index)}
-                onClick={() => go(option.href)}
+                onClick={() => go(option)}
                 className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-sm", index === active && "bg-muted")}
               >
                 {option.thumbnail}

@@ -13,6 +13,7 @@ import { LifeDetails, LifeMark } from "@/components/life";
 import { PersonAvatar } from "@/components/person-avatar";
 import { TrailOrigin } from "@/components/person-panel";
 import { buttonVariants } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import { titleOf } from "@/lib/moments";
 import type { Story, StoryCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -86,6 +87,18 @@ export function StoryPlayer({ story }: { story: Story }) {
     url.hash = turned === 0 ? "" : `card=${turned + 1}`;
     window.history.replaceState(null, "", url);
   }, [turned]);
+
+  // Counts each card once per visit, for drop-off along the story; the doors after the last card complete it.
+  // Not while hydrating (no hash yet): the first card shown then may not be the one the visitor lands on.
+  const reached = useRef(new Set<number>());
+  useEffect(() => track({ name: "story_started", moment: moment.id }), [moment.id]);
+  useEffect(() => {
+    if (hash === null || reached.current.has(index)) return;
+    reached.current.add(index);
+    track(index < cards.length
+      ? { name: "story_card_reached", moment: moment.id, card: index + 1 }
+      : { name: "story_completed", moment: moment.id });
+  }, [hash, index, cards.length, moment.id]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
