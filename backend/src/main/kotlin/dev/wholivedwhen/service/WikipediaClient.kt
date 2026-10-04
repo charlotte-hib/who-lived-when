@@ -3,12 +3,10 @@ package dev.wholivedwhen.service
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
-import java.net.http.HttpClient
 import java.time.Duration
 
 @ConfigurationProperties("app.wikipedia")
@@ -21,7 +19,10 @@ data class WikipediaProperties(
 /** The parts of a Wikipedia article summary the app uses. */
 data class ArticleSummary(val extract: String?, val thumbnailUrl: String?, val pageUrl: String?)
 
-/** Thin client over the Wikipedia REST API. Lookups are best effort and never throw. */
+/**
+ * Thin client over the Wikipedia REST API. Lookups are best effort and never throw.
+ * Timeouts come from `spring.http.clients` in application.yaml.
+ */
 @Component
 class WikipediaClient(builder: RestClient.Builder, properties: WikipediaProperties) {
 
@@ -30,11 +31,6 @@ class WikipediaClient(builder: RestClient.Builder, properties: WikipediaProperti
     private val restClient = builder
         .baseUrl(properties.baseUrl)
         .defaultHeader("User-Agent", properties.userAgent)
-        .requestFactory(
-            JdkClientHttpRequestFactory(
-                HttpClient.newBuilder().connectTimeout(TIMEOUT).build()
-            ).apply { setReadTimeout(TIMEOUT) }
-        )
         .build()
 
     fun summary(title: String): ArticleSummary? {
@@ -68,7 +64,6 @@ class WikipediaClient(builder: RestClient.Builder, properties: WikipediaProperti
     private data class PageLink(val page: String?)
 
     private companion object {
-        val TIMEOUT: Duration = Duration.ofSeconds(5)
         const val MAX_ATTEMPTS = 4
     }
 }
