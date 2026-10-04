@@ -5,6 +5,7 @@ import { LifeInTime } from "@/components/life-in-time";
 import { LifeChip } from "@/components/life";
 import { PersonChip } from "@/components/person-chip";
 import { PersonAbout, PersonHeader } from "@/components/person-header";
+import { FullPageTrail, TrailOrigin } from "@/components/person-panel";
 import { Section } from "@/components/section";
 import { SiteHeader } from "@/components/site-header";
 import { WorldAround } from "@/components/world-around";
@@ -23,7 +24,9 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
   return (
     <>
       <SiteHeader />
+      <TrailOrigin label={person.name} />
       <main className="mx-auto grid w-full max-w-3xl gap-10 px-4 py-10">
+        <FullPageTrail slug={person.slug} />
         <PersonHeader detail={detail} />
         <PersonAbout detail={detail} />
 

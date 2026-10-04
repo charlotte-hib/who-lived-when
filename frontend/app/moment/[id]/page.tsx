@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ArtworkCredit, ArtworkImage } from "@/components/artwork-image";
 import { MomentExplorer } from "@/components/moment-explorer";
+import { TrailOrigin } from "@/components/person-panel";
 import { SiteHeader } from "@/components/site-header";
 import { getMoment } from "@/lib/api";
 import { titleOf } from "@/lib/moments";
@@ -14,6 +15,7 @@ export default async function MomentPage({ params }: PageProps<"/moment/[id]">) 
 
   return (
     <>
+      <TrailOrigin label={titleOf(moment)} />
       <SiteHeader overlay />
       <main>
         <header className="relative flex min-h-80 items-end overflow-hidden">

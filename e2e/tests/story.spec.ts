@@ -42,3 +42,44 @@ test("the featured story turns page by page with taps on the card text", async (
 
   await expect(page.getByRole("heading", { name: "Step through another door" })).toBeVisible();
 });
+
+// Regression: after turning a page, a person opened from the story flashed in the panel and then loaded as a full
+// page, and the full page had no way back to the story.
+test("a person opens over the story, and their full page leads back to it", async ({ page, request }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Play the story", exact: true }).click();
+  await expect(page).toHaveURL(/\/moment\/[^/]+\/story$/);
+
+  const momentId = new URL(page.url()).pathname.split("/")[2];
+  const { cards } = (await (await request.get(`/api/moments/${momentId}/story`)).json()) as {
+    cards: { type: string; person: { name: string } | null }[];
+  };
+  const at = cards.findIndex((card) => card.type === "PERSON" && card.person);
+  test.skip(at < 1, "the featured story needs a person after its first card");
+  const { name } = cards[at].person!;
+
+  // Turn the pages in place: this is what used to break the panel.
+  const storyUrl = page.url();
+  for (let i = 0; i < at; i++) await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(`${storyUrl}#card=${at + 1}`);
+
+  const pageLoads: string[] = [];
+  page.on("request", (r) => r.resourceType() === "document" && pageLoads.push(r.url()));
+  await page.getByRole("button", { name: `More about ${name}` }).click();
+
+  const panel = page.getByRole("dialog", { name: "Someone who lived it" });
+  await expect(panel.getByRole("heading", { name, level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(/\/person\//);
+  // The story stays underneath, hidden from assistive tech while the panel is open.
+  await expect(page.getByRole("button", { name: "Close story", includeHidden: true })).toBeAttached();
+  expect(pageLoads).toEqual([]);
+
+  await panel.getByRole("link", { name: "Open the full page" }).click();
+  const path = page.getByRole("navigation", { name: "Your path" });
+  await expect(path).toContainText(name);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await path.getByRole("button", { name: /^The story of / }).click();
+  await expect(page).toHaveURL(`${storyUrl}#card=${at + 1}`);
+  await expect(page.getByRole("button", { name: `More about ${name}` })).toBeVisible();
+});
