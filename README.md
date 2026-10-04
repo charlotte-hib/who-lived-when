@@ -2,8 +2,6 @@
 
 [![CI/CD](https://github.com/charlotte-hib/who-lived-when/actions/workflows/ci.yml/badge.svg)](https://github.com/charlotte-hib/who-lived-when/actions/workflows/ci.yml)
 
-Live at https://51-254-125-102.sslip.io
-
 A history app you step into. Pick a moment (one place over a few years, like Paris in the 1870s or Kyoto in the 1590s), watch its story told card by card over a painting of the period, then meet everyone who lived there: rulers, artists, and the everyday lives around them. Every connection between people is a dated, sourced event.
 
 ## Requirements
