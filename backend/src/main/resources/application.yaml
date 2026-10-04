@@ -13,6 +13,11 @@ spring:
   h2:
     console:
       enabled: true
+  http:
+    clients:
+      # For every RestClient, today only WikipediaClient: a slow article must not hold up enrichment.
+      connect-timeout: 5s
+      read-timeout: 5s
 
 app:
   drafting:
