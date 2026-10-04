@@ -4,6 +4,8 @@
 #   deploy/deploy.sh <commit sha> <backend image@digest> <frontend image@digest>
 # The release (commit and image digests) is written to .env, which Docker Compose reads.
 # The site address to probe comes from site.env (SITE_ADDRESS=...), kept on the server only.
+# Prometheus and Grafana run once the server has grafana.env (GF_SECURITY_ADMIN_PASSWORD=...), kept on the
+# server only too; they start after the release is healthy and never cause a rollback.
 set -euo pipefail
 
 # Everything runs inside functions: bash reads them whole, before `git checkout` rewrites this file.
@@ -14,6 +16,7 @@ main() {
   [[ -f .env ]] && cp .env .env.previous
 
   if release "$@" && healthy; then
+    monitor
     docker image prune --force > /dev/null
     echo "Released $1"
     return
@@ -29,12 +32,27 @@ main() {
 }
 
 # Checks out the release's compose config and starts its images. Chained with && because
-# set -e does not apply inside an if condition.
+# set -e does not apply inside an if condition. Only the site's own services: the monitoring
+# ones, when on, stay in the Compose project (so they are not orphans) but start in monitor().
 release() {
   git checkout --quiet --detach "$1" &&
-    printf 'RELEASE_SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$1" "$2" "$3" > .env &&
-    docker compose pull --quiet &&
-    docker compose up --detach --remove-orphans --wait
+    { printf 'RELEASE_SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$1" "$2" "$3" && profiles; } > .env &&
+    docker compose pull --quiet backend frontend &&
+    docker compose up --detach --remove-orphans --wait backend frontend
+}
+
+# Turns on the monitoring profile when the server has a Grafana admin password.
+profiles() {
+  if [[ -f grafana.env && -n $(value GF_SECURITY_ADMIN_PASSWORD grafana.env) ]]; then
+    echo COMPOSE_PROFILES=monitoring
+  fi
+}
+
+# Starts (or updates) Prometheus and Grafana for a healthy release. The site does not need them,
+# so a failure here is reported but neither fails the deploy nor rolls it back.
+monitor() {
+  [[ -n $(profiles) ]] || return 0
+  docker compose up --detach --wait prometheus grafana || echo "Monitoring did not start; the release stands" >&2
 }
 
 # The whole path a visitor takes: Caddy (TLS), Next.js, then the Spring Boot API. Waits up to 3 minutes.
