@@ -51,6 +51,43 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
+  # Smoke tests the backend image over real HTTP with the requests in http/api.http.
+  # Only ever against this local container: production is health-checked by deploy/deploy.sh.
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    env:
+      HTTP_CLIENT_IMAGE: jetbrains/intellij-http-client:2026.2.3@sha256:a69390757348c3a758ca36f7b213903929a5799c23702fb7aae2d222d90c59ef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the backend image
+        run: docker build --tag backend:api-tests backend
+      - name: Start the backend
+        # Without Wikipedia enrichment the data is exactly the seed, and the job does not depend on Wikipedia.
+        run: |
+          docker run --detach --name backend --publish 8080:8080 \
+            --env APP_WIKIPEDIA_ENRICH=false --env SPRING_PROFILES_ACTIVE=prod backend:api-tests
+      - name: Wait for the API
+        run: |
+          for _ in $(seq 60); do
+            curl --fail --silent --output /dev/null http://localhost:8080/api/moments && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Run the HTTP Client tests
+        run: |
+          docker run --rm --network host --volume "$PWD/http:/workdir" "$HTTP_CLIENT_IMAGE" \
+            --env-file http-client.env.json --env ci --report --no-progress api.http
+      - name: Backend logs
+        if: failure()
+        run: docker logs backend
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: api-test-report
+          path: http/reports/
+          if-no-files-found: ignore
+
   images:
     name: Image (${{ matrix.service }})
     needs: [backend, frontend]
