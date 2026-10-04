@@ -3,14 +3,14 @@
 # Run by the deploy workflow over Tailscale SSH, as the deploy user, from the repository checkout:
 #   deploy/deploy.sh <commit sha> <backend image@digest> <frontend image@digest>
 # The release (commit and image digests) is written to .env, which Docker Compose reads.
+# The site address to probe comes from site.env (SITE_ADDRESS=...), kept on the server only.
 set -euo pipefail
-
-# The sslip.io address until the charlottehibert.com subdomain has DNS records (see deploy/Caddyfile).
-SITE=${SITE_ADDRESS:-51-254-125-102.sslip.io}
 
 # Everything runs inside functions: bash reads them whole, before `git checkout` rewrites this file.
 main() {
   cd "$(dirname "$0")/.."
+  [[ -f site.env ]] && SITE=$(value SITE_ADDRESS site.env)
+  [[ -n ${SITE:-} ]] || { echo "No SITE_ADDRESS in site.env" >&2; exit 1; }
   [[ -f .env ]] && cp .env .env.previous
 
   if release "$@" && healthy; then
