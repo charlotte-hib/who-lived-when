@@ -84,6 +84,7 @@ export ANTHROPIC_API_KEY=...
 - `GET /api/years/{year}/people?exclude=FR` returns a few people alive that year in each other region.
 - `GET /api/search?q=zola` searches people and moments, ignoring accents.
 - `GET /api/regions`, `GET /api/eras`, `GET /api/eras/{id}`.
+- `POST /api/events` counts one anonymous visitor event (see [Metrics](#metrics)): 204 when counted, 400 when outside the allowed names and values, 413 above 1 KB.
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
 
 ### API tests
@@ -96,6 +97,23 @@ ijhttp --env-file http/http-client.env.json --env local http/api.http
 
 CI runs the same file against the backend image (the "API tests" job), never against production.
 
+## Metrics
+
+Two Grafana dashboards, provisioned from `monitoring/`: **Visitors** (page views, stories started and finished, the card where readers stop, people opened in a panel or on their full page and from where, searches) and **Service** (requests, p95 latency, 5xx, JVM memory, CPU, GC).
+
+- **What is counted.** The frontend (`lib/analytics.ts`) sends a few events with `navigator.sendBeacon` to `POST /api/events`: `page_view` (by page template: home, moment, story, person), `story_started`, `story_card_reached` (card number), `story_completed`, `person_panel_opened` and `person_full_page_opened` (where from: the page underneath, search, the panel, a link from outside), `search_used` and `search_result_opened`. The backend (`VisitorEvents.kt`) only adds one to a Prometheus counter; every label comes from a closed set (page templates, published moments, card positions within their story), and anything else is rejected and counted as rejected.
+- **What is not.** No cookies, no ids, no IP addresses, user agents, URLs or referrers are sent or stored, and nothing links two events to the same visitor: the counters only say how often something happened. The only thing kept in the browser is a one-shot flag in `sessionStorage` that tells a person's full page it was opened from the panel; the page removes it on arrival. Automated browsers (`navigator.webdriver`) send nothing.
+- **Where it runs.** Spring Boot Actuator serves `/actuator/prometheus` (and health) on its own port, 8081, in the Docker image; nothing publishes that port, and the frontend only forwards `/api/*` to 8080. Prometheus (30 days, at most 1 GB) and Grafana run in Compose under the `monitoring` profile, with small memory limits. Grafana listens on `127.0.0.1:3001` only, never through Caddy, with sign-up and anonymous access off.
+
+Locally, with a password of your choice in `grafana.env` (untracked):
+
+```sh
+echo "GF_SECURITY_ADMIN_PASSWORD=$(openssl rand -base64 24)" > grafana.env
+docker compose --profile monitoring up --build
+```
+
+Then open http://localhost:3001 and sign in as `admin`. On the server, `deploy/deploy.sh` starts Prometheus and Grafana once `grafana.env` exists next to `.env`; reach Grafana through an SSH tunnel (`ssh -L 3001:localhost:3001 <server>`, then http://localhost:3001). The dashboards are read from the repository: edit them in Grafana, export the JSON into `monitoring/grafana/dashboards/` and commit it.
+
 ## Deployment
 
 The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
@@ -103,6 +121,6 @@ The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
 1. **Every pull request** runs the backend tests and the frontend lint and build, then builds each image once (saved for a day as a workflow artifact) and runs the API tests and the end-to-end tests against those exact images. `main` is protected by a ruleset: changes land only through pull requests that pass the backend tests and the frontend lint and build, with linear history and no force push or deletion.
 2. **On `main`**, the same images are pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
 3. **The deploy job** (GitHub environment `production`) waits for the API and end-to-end tests, verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
-4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
+4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job. Once the release is healthy, it starts or updates Prometheus and Grafana (when the server has `grafana.env`); a monitoring failure is reported but never rolls the site back.
 
 Dependabot keeps Actions (pinned by commit), Gradle, npm and base images up to date.
