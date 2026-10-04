@@ -71,11 +71,21 @@ export ANTHROPIC_API_KEY=...
 - `GET /api/regions`, `GET /api/eras`, `GET /api/eras/{id}`.
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
 
+### API tests
+
+`http/api.http` is a short end-to-end smoke suite: a few requests against a running backend, each with assertions on the status, the content type and the seed data it returns. Start the backend without Wikipedia enrichment (`./gradlew bootRun --args='--app.wikipedia.enrich=false'`), then either open the file in IntelliJ and run the requests with the `local` environment, or run them all with the [HTTP Client CLI](https://www.jetbrains.com/help/idea/http-client-cli.html):
+
+```sh
+ijhttp --env-file http/http-client.env.json --env local http/api.http
+```
+
+CI runs the same file against the backend image (the "API tests" job), never against production.
+
 ## Deployment
 
 The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
 
-1. **Every pull request** runs the backend tests and the frontend lint and build. `main` is protected by a ruleset: changes land only through pull requests that pass both checks, with linear history and no force push or deletion.
+1. **Every pull request** runs the backend tests, the frontend lint and build, and the API tests against the backend image. `main` is protected by a ruleset: changes land only through pull requests that pass both checks, with linear history and no force push or deletion.
 2. **On `main`**, both images are built once, pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
 3. **The deploy job** (GitHub environment `production`) verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
 4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
