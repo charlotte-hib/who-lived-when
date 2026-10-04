@@ -7,3 +7,7 @@ site.env
 # HTTP Client CLI: JUnit reports and personal overrides.
 http/reports/
 http/http-client.private.env.json
+# Playwright end-to-end tests.
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
