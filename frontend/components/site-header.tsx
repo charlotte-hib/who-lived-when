@@ -9,7 +9,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <p className="text-sm whitespace-nowrap text-muted-foreground">
           <Link href="/" className="font-semibold text-foreground hover:underline">
-            Who lived when
+            Liminis
           </Link>
           <span className="max-sm:hidden"> · step into a moment</span>
         </p>
