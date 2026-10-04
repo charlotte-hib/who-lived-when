@@ -19,17 +19,10 @@ Public repo, part of the author's CV: https://github.com/charlotte-hib/who-lived
 
 ## Production
 
-https://51-254-125-102.sslip.io for now (https://wholivedwhen.charlottehibert.com once its DNS records exist), on an OVH VPS (Debian 13, 1 vCPU, 2 GB RAM + 2 GB swap) that also hosts other sites.
+Merging to `main` deploys. Server details and access are kept out of this public repo: @~/.claude/who-lived-when-ops.md
 
 - **Pipeline** (`.github/workflows/ci.yml`): pull requests run backend tests and frontend lint and build. On `main`, images are built once, pushed to GHCR (`ghcr.io/charlotte-hib/who-lived-when-{backend,frontend}`, tagged `sha-<commit>`) with signed SLSA provenance and SPDX SBOM attestations. The `deploy` job (environment `production`, `main` only) verifies the provenance, joins the tailnet through Tailscale workload identity federation, and runs `deploy/deploy.sh` over Tailscale SSH. `workflow_dispatch` redeploys `main` by hand.
-- **No secrets in GitHub.** Repository variables only: `TS_OAUTH_CLIENT_ID`, `TS_AUDIENCE` (Tailscale federated identity, subject `repo:charlotte-hib@9551327/who-lived-when@1402884974:environment:production`, GitHub's immutable format with owner and repo IDs), `VPS_HOST=who-lived-when-vps`. Do not add SSH keys or tokens.
-- **`deploy/deploy.sh`** runs on the VPS in `/opt/who-lived-when` (a clone of this repo, owned by `deploy`): checks out the commit, writes the release (commit and image digests) to `.env`, `docker compose up`, probes `/` and `/api/moments` through Caddy, and rolls back to `.env.previous` if unhealthy within 3 minutes. Its body is in functions because it rewrites itself through `git checkout`.
-- **Caddy** is installed on the server (apt, systemd), not in Compose, and serves every site on the VPS. `/etc/caddy/Caddyfile` ends with `import /opt/who-lived-when/deploy/Caddyfile`. After changing `deploy/Caddyfile`, the deploy does not reload Caddy: run `sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && sudo systemctl reload caddy`. Never run a second proxy on ports 80/443.
+- **No secrets in GitHub.** Repository variables only. Do not add SSH keys or tokens.
+- **`deploy/deploy.sh`** runs on the server in a clone of this repo: checks out the commit, writes the release (commit and image digests) to `.env`, `docker compose up`, probes `/` and `/api/moments` through the reverse proxy, and rolls back to `.env.previous` if unhealthy within 3 minutes. Its body is in functions because it rewrites itself through `git checkout`.
 - **Compose**: `backend` (no published port, `SPRING_PROFILES_ACTIVE=prod` disables the H2 console) and `frontend` on `127.0.0.1:3000`. No volumes: H2 is in memory and reseeds on every start; Wikipedia enrichment takes about a minute.
-
-## Server access
-
-- Public SSH is closed. The firewall is nftables only (`/etc/nftables.conf`, ufw disabled): inbound 80, 443 (tcp+udp), 41641/udp and the `tailscale0` interface; forward allows container traffic out but nothing in. The file replaces only `table inet filter`; never `flush ruleset`, which wipes Docker's and Tailscale's tables. Connect over Tailscale SSH: `ssh ovh-vps` (user `debian`, sudo) or `ssh deploy@who-lived-when-vps` (docker group). Never reopen port 22 publicly.
-- Tailscale policy: `tag:ci` may reach only `tag:vps` on tcp:22, and SSH only as `deploy`.
-- If Tailscale is unreachable: OVH Manager KVM console or rescue mode.
-- DNS for `charlottehibert.com` is in the OVH Manager (DNS zone): `wholivedwhen` A `51.254.125.102`, AAAA `2001:41d0:401:3000::1340`.
+- Keep server details (addresses, hosts, users, firewall, other sites) out of tracked files, including `README.md` and this file.
