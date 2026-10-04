@@ -1,6 +1,6 @@
 # Who Lived When
 
-Spring Boot 4 + Kotlin backend (`backend/`), Next.js 16 frontend (`frontend/`, see `frontend/CLAUDE.md`). Product and design context: `README.md` and `project-brief.html`.
+Spring Boot 4 + Kotlin backend (`backend/`), Next.js 16 frontend (`frontend/`, see `frontend/CLAUDE.md`). Product and design context: `README.md`.
 
 ## Local commands
 
@@ -11,7 +11,7 @@ Spring Boot 4 + Kotlin backend (`backend/`), Next.js 16 frontend (`frontend/`, s
 
 ## Commits
 
-Public repo, part of the author's CV: https://github.com/charlotte-hib/who-lived-when
+Public repo: https://github.com/charlotte-hib/who-lived-when
 
 - Conventional Commits, small and logical, with a body explaining why. Keep the tree clean.
 - Author `charlotte-hib <9551327+charlotte-hib@users.noreply.github.com>`. No `Co-Authored-By` trailer.
