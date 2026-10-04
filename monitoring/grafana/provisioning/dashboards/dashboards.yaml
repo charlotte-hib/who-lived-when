@@ -1,0 +1,12 @@
+# Dashboards live in the repository (monitoring/grafana/dashboards) and are read from disk: Grafana rescans the
+# folder, so a deploy updates them. Edits made in Grafana cannot be saved; export the JSON and commit it instead.
+apiVersion: 1
+
+providers:
+  - name: who-lived-when
+    folder: Who Lived When
+    type: file
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

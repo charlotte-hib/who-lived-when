@@ -2,6 +2,12 @@
 # localhost only: on the VPS, the server's Caddy terminates HTTPS in front of it (deploy/Caddyfile).
 # Locally: docker compose up --build, then http://localhost:3000. In production, deploy/deploy.sh
 # sets the images to the digests the pipeline built and signed (in .env), so the VPS never builds.
+#
+# Monitoring (profile "monitoring", off unless asked for): Prometheus scrapes the backend's metrics on the
+# Compose network, and Grafana shows them on localhost:3001 only, never through Caddy. Grafana's admin
+# password comes from grafana.env (GF_SECURITY_ADMIN_PASSWORD=..., untracked). deploy/deploy.sh turns the
+# profile on when the server has that file. Locally:
+#   docker compose --profile monitoring up --build, then http://localhost:3001 (user admin).
 
 services:
   backend:
@@ -24,3 +30,53 @@ services:
       - backend
     restart: unless-stopped
     mem_limit: 384m
+
+  # 30 days or 1 GB of samples, whichever comes first (monitoring/prometheus/prometheus.yml).
+  prometheus:
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    profiles: [monitoring]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --config.auto-reload
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      - backend
+    restart: unless-stopped
+    # Prometheus sets its Go memory limit to 90% of this by itself.
+    mem_limit: 128m
+
+  grafana:
+    image: grafana/grafana:13.2.3@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572
+    profiles: [monitoring]
+    env_file: grafana.env
+    environment:
+      GF_SERVER_ROOT_URL: http://localhost:3001/
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      # Nothing leaves the server: no usage reporting, update checks, news feed or plugin downloads.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GOMEMLIMIT: 160MiB
+    ports:
+      # Loopback only: reach it through an SSH tunnel, never publicly.
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    mem_limit: 192m
+
+volumes:
+  prometheus-data:
+  grafana-data:

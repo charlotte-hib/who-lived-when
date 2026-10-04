@@ -1,0 +1,14 @@
+# The only data source; dashboards refer to it by its uid. Changes here need a Grafana restart.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Matches the scrape interval in monitoring/prometheus/prometheus.yml.
+      timeInterval: 30s
