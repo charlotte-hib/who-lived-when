@@ -19,6 +19,20 @@ spring:
       connect-timeout: 5s
       read-timeout: 5s
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # Prometheus scrapes /actuator/prometheus; nothing else but health is exposed. The prod profile moves
+        # Actuator to a port of its own, which only the Compose network can reach.
+        include: health, prometheus
+  metrics:
+    distribution:
+      # Latency buckets for the p95 on the Service dashboard: a few fixed bounds instead of a full histogram
+      # per route keeps the number of series small.
+      slo:
+        http.server.requests: 25ms, 50ms, 100ms, 250ms, 500ms, 1000ms, 2500ms, 5000ms
+
 app:
   drafting:
     # Set to a moment id (e.g. --app.drafting.moment=edo-1830s) to draft its story with Claude and exit.
