@@ -51,9 +51,9 @@ services:
   grafana:
     image: grafana/grafana:13.2.3@sha256:b28bae15e219c998fb0e0424ed724930cc61b1f61fb404d47c862f9a23f9e572
     profiles: [monitoring]
-    env_file: grafana.env
+    # grafana.env (untracked) comes last, so it overrides the defaults.
+    env_file: [monitoring/grafana/defaults.env, grafana.env]
     environment:
-      GF_SERVER_ROOT_URL: http://localhost:3001/
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SECURITY_DISABLE_GRAVATAR: "true"
