@@ -9,6 +9,7 @@ Spring Boot 4 + Kotlin backend (`backend/`), Next.js 16 frontend (`frontend/`, s
 - Frontend: `cd frontend && npm run lint && npm run build` / `npm run dev` (port 3000).
 - API tests: with the backend running (`--app.wikipedia.enrich=false`), `ijhttp --env-file http/http-client.env.json --env local http/api.http` (add `-V baseUrl=http://localhost:<port>` for another port). Never point them at production.
 - Both in Docker: `docker compose up --build`, then http://localhost:3000. Docker Desktop is often not running on this Mac.
+- End-to-end (Playwright, against a running site): `cd e2e && npm ci && npm run typecheck && npx playwright test` (`BASE_URL`, default http://localhost:3000). Locally it drives the installed Google Chrome: Playwright's Chromium does not run on macOS 13.
 
 ## Commits
 
