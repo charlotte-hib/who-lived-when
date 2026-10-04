@@ -30,7 +30,7 @@ npm install
 npm run dev
 ```
 
-Or both in Docker, as they run in production, on http://localhost:3000:
+Or both in Docker, on http://localhost:3000:
 
 ```sh
 docker compose up --build
@@ -75,19 +75,11 @@ export ANTHROPIC_API_KEY=...
 
 ## Deployment
 
-One small VPS (1 vCPU, 2 GB) runs the app with Docker Compose next to other sites. The server's Caddy serves them all and gets their HTTPS certificates; it imports this app's site from `deploy/Caddyfile` and proxies it to the Next.js frontend on localhost, which forwards `/api/*` to the backend. The backend has no published port, and the production profile turns the H2 console off.
-
 The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
 
 1. **Every pull request** runs the backend tests and the frontend lint and build. `main` is protected by a ruleset: changes land only through pull requests that pass both checks, with linear history and no force push or deletion.
 2. **On `main`**, both images are built once, pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
-3. **The deploy job** (GitHub environment `production`) verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key). SSH is closed on the public interface.
-4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site through the server's Caddy. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
+3. **The deploy job** (GitHub environment `production`) verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
+4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job.
 
 Dependabot keeps Actions (pinned by commit), Gradle, npm and base images up to date.
-
-Inspect what runs in production:
-
-```sh
-gh attestation verify oci://ghcr.io/charlotte-hib/who-lived-when-backend:latest --repo charlotte-hib/who-lived-when
-```
