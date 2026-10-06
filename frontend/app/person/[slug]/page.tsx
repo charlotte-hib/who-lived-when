@@ -32,12 +32,6 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
         <PersonHeader detail={detail} />
         <PersonAbout detail={detail} />
 
-        {detail.connections.length > 0 && (
-          <Section title="Connected to">
-            <Connections connections={detail.connections} />
-          </Section>
-        )}
-
         {detail.world && detail.worldMoment && (
           <Section title={`The world around them · ${detail.worldMoment.place}, ${detail.worldMoment.period}`}>
             <div className="rounded-2xl border bg-card/40 p-5">
@@ -49,6 +43,12 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
         <Section title="Their life in their time">
           <LifeInTime lines={detail.lifeline} />
         </Section>
+
+        {detail.connections.length > 0 && (
+          <Section title="Connected to">
+            <Connections connections={detail.connections} />
+          </Section>
+        )}
 
         {(detail.aroundPeople.length > 0 || detail.aroundLives.length > 0) && (
           <Section title={`Around them in ${person.region}, ${formatYear(year)}`}>
