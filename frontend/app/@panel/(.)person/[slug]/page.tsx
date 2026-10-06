@@ -33,15 +33,15 @@ export default async function PersonPanelPage({ params, searchParams }: PageProp
         </FullPageButton>
       </div>
 
+      <Section title="Their life in their time">
+        <LifeInTime lines={detail.lifeline} />
+      </Section>
+
       {detail.connections.length > 0 && (
         <Section title="Connected to">
           <Connections connections={detail.connections} replace />
         </Section>
       )}
-
-      <Section title="Their life in their time">
-        <LifeInTime lines={detail.lifeline} />
-      </Section>
 
       {(detail.aroundPeople.length > 0 || detail.aroundLives.length > 0) && (
         <Section title={`Around them in ${person.region}, ${formatYear(year)}`}>
