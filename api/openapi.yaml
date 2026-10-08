@@ -133,17 +133,20 @@ paths:
         - name: exclude
           in: query
           required: true
-          description: The region to leave out, e.g. `FR`.
+          description: The code of the region to leave out, e.g. `FR`.
           schema:
             type: string
+            pattern: "^[A-Z]{2}$"
         - name: perRegion
           in: query
           required: false
-          description: How many people per region, from 1 to 5. Values outside that range are brought back into it.
+          description: How many people per region.
           schema:
             type: integer
             format: int32
             default: 2
+            minimum: 1
+            maximum: 5
       responses:
         "200":
           description: The people, by region.
@@ -154,7 +157,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Person"
         "400":
-          description: A required parameter is missing or not a number.
+          $ref: "#/components/responses/BadRequest"
 
   /api/search:
     get:
@@ -166,8 +169,10 @@ paths:
         - name: q
           in: query
           required: true
+          description: What to look for. Under two characters, once trimmed, it finds nothing.
           schema:
             type: string
+            maxLength: 100
       responses:
         "200":
           description: Names that start with the query first, then by birth.
@@ -176,7 +181,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/SearchResults"
         "400":
-          description: The query is missing.
+          $ref: "#/components/responses/BadRequest"
 
   /api/regions:
     get:

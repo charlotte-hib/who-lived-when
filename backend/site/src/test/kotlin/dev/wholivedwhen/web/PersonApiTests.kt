@@ -46,11 +46,24 @@ class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
 
     @Test
     fun `meanwhile lists people alive elsewhere that year`() {
-        mockMvc.get("/api/years/1875/people?exclude=fr").andExpect {
+        mockMvc.get("/api/years/1875/people?exclude=FR").andExpect {
             status { isOk() }
             jsonPath("$[?(@.slug == 'emperor-meiji')]") { exists() }
             jsonPath("$[?(@.regionCode == 'FR')]") { isEmpty() }
         }
+    }
+
+    @Test
+    fun `parameters outside the spec's constraints are refused`() {
+        listOf(
+            "/api/years/1875/people?exclude=fr",
+            "/api/years/1875/people?exclude=FRA",
+            "/api/years/1875/people?exclude=FR&perRegion=0",
+            "/api/years/1875/people?exclude=FR&perRegion=6",
+            "/api/years/1875/people",
+            "/api/years/later/people?exclude=FR",
+            "/api/search?q=${"a".repeat(101)}",
+        ).forEach { path -> mockMvc.get(path).andExpect { status { isBadRequest() } } }
     }
 
     @Test

@@ -72,7 +72,10 @@ openApiGenerate {
 		"useTags" to "true",
 		"requestMappingMode" to "api_interface",
 		"useResponseEntity" to "false",
-		"useBeanValidation" to "false",
+		// The spec's constraints (minimum, pattern, maxLength) become Bean Validation annotations on the interfaces,
+		// which Spring MVC's built-in method validation enforces: a request outside them gets a 400.
+		"useBeanValidation" to "true",
+		"useSpringBuiltInValidation" to "true",
 		"documentationProvider" to "none",
 		"annotationLibrary" to "none",
 		"exceptionHandler" to "false",
