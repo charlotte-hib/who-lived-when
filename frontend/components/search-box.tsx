@@ -99,10 +99,11 @@ export function SearchBox({ className }: { className?: string }) {
         role="combobox"
         aria-expanded={options.length > 0}
         aria-controls={listId}
-        className="w-full rounded-full border bg-background/60 py-2 pr-4 pl-9 text-sm backdrop-blur placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+        // 16px on touch screens: below that, Safari on iPhone zooms the page in when the box gets focus.
+        className="w-full rounded-full border bg-background/60 py-2 pr-4 pl-9 text-sm backdrop-blur placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none pointer-coarse:text-base"
       />
       {/* After the input, which its backdrop blur would otherwise paint over. */}
-      <Search aria-hidden className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
+      <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       {options.length > 0 && (
         <ul id={listId} role="listbox" className="absolute inset-x-0 top-full z-20 mt-2 max-h-[60vh] overflow-y-auto rounded-xl border bg-popover p-1 shadow-xl">
           {options.map((option, index) => (
