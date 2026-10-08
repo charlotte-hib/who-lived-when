@@ -28,7 +28,8 @@ class SearchService(
         return SearchResultsDto(
             people = people.findAll()
                 .filter { foldForSearch(it.name).contains(q) }
-                .sortedBy { !foldForSearch(it.name).startsWith(q) }
+                // Names that start with the query first, then in order of birth.
+                .sortedWith(compareBy({ !foldForSearch(it.name).startsWith(q) }, { it.birthYear }, { it.id }))
                 .take(MAX_PEOPLE)
                 .map(mapper::toDto),
             moments = momentService.list()

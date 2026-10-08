@@ -57,6 +57,16 @@ class LifespanQueryTests(
     }
 
     @Test
+    fun `people born the same year are listed by id, whatever order they were stored in`() {
+        val france = entities.find(Region::class.java, "FR")!!
+        entities.persist(person("twin-b", france, 1700, 1760))
+        entities.persist(person("twin-a", france, 1700, 1760))
+
+        assertEquals(listOf("twin-a", "twin-b"), people.findAliveBetween("FR", 1750, 1750).map { it.slug })
+        assertEquals(listOf("twin-a", "twin-b"), people.findAliveElsewhere("JP", 1750).map { it.slug })
+    }
+
+    @Test
     fun `lives touching either end of a span are in it`() {
         val ids = lives.findLivedBetween("FR", 1870, 1880).map { it.id }
 
