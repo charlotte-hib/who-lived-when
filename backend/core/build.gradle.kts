@@ -29,6 +29,8 @@ dependencies {
 	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+	testImplementation("com.github.victools:jsonschema-generator:5.0.0")
+	testImplementation("com.networknt:json-schema-validator:3.0.8")
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
@@ -49,10 +51,17 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
-// SampleReleaseTests compile the repository's sample/ release.
+// The tests compile the repository's sample/ release and check it against its JSON Schema.
 val sample = rootProject.file("../sample")
 
 tasks.test {
 	inputs.dir(sample).withPropertyName("sample").withPathSensitivity(PathSensitivity.RELATIVE)
 	systemProperty("sample.dir", sample.path)
+}
+
+tasks.register<JavaExec>("releaseSchema") {
+	description = "Writes the release format's JSON Schema, generated from its records, to sample/release.schema.json."
+	classpath = sourceSets.test.get().runtimeClasspath
+	mainClass = "dev.wholivedwhen.release.ReleaseSchemaKt"
+	args(sample.resolve("release.schema.json").path)
 }

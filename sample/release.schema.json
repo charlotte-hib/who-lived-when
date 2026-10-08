@@ -1,0 +1,381 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "$defs" : {
+    "ArtRecord" : {
+      "type" : "object",
+      "properties" : {
+        "credit" : {
+          "type" : "string"
+        },
+        "source" : {
+          "type" : "string"
+        },
+        "url" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "credit", "source", "url" ],
+      "additionalProperties" : false
+    },
+    "CardRecord" : {
+      "type" : "object",
+      "properties" : {
+        "art" : {
+          "$ref" : "#/$defs/ArtRecord"
+        },
+        "event" : {
+          "type" : "string"
+        },
+        "kicker" : {
+          "type" : "string"
+        },
+        "life" : {
+          "type" : "string"
+        },
+        "person" : {
+          "type" : "string"
+        },
+        "text" : {
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        },
+        "type" : {
+          "$ref" : "#/$defs/CardType"
+        },
+        "year" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [ "type" ],
+      "additionalProperties" : false
+    },
+    "CardType" : {
+      "type" : "string",
+      "enum" : [ "SCENE", "PERSON", "LIFE", "EVENT" ]
+    },
+    "ConnectionRecord" : {
+      "type" : "object",
+      "properties" : {
+        "kind" : {
+          "type" : "string"
+        },
+        "people" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "source" : {
+          "type" : "string"
+        },
+        "text" : {
+          "type" : "string"
+        },
+        "year" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [ "kind", "people", "source", "text", "year" ],
+      "additionalProperties" : false
+    },
+    "Domain" : {
+      "type" : "string",
+      "enum" : [ "POWER", "ARTS", "EVERYDAY" ]
+    },
+    "DoorRecord" : {
+      "type" : "object",
+      "properties" : {
+        "faces" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "kind" : {
+          "type" : "string"
+        },
+        "text" : {
+          "type" : "string"
+        },
+        "to" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "kind", "text", "to" ],
+      "additionalProperties" : false
+    },
+    "EraRecord" : {
+      "type" : "object",
+      "properties" : {
+        "end" : {
+          "type" : "integer"
+        },
+        "governedBy" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "label" : {
+          "type" : "string"
+        },
+        "region" : {
+          "type" : "string"
+        },
+        "start" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [ "id", "label", "region", "start" ],
+      "additionalProperties" : false
+    },
+    "EventRecord" : {
+      "type" : "object",
+      "properties" : {
+        "description" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "participants" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/ParticipantRecord"
+          }
+        },
+        "region" : {
+          "type" : "string"
+        },
+        "source" : {
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        },
+        "year" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [ "description", "id", "region", "source", "title", "year" ],
+      "additionalProperties" : false
+    },
+    "LifeRecord" : {
+      "type" : "object",
+      "properties" : {
+        "description" : {
+          "type" : "string"
+        },
+        "end" : {
+          "type" : "integer"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "label" : {
+          "type" : "string"
+        },
+        "region" : {
+          "type" : "string"
+        },
+        "start" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [ "description", "end", "id", "label", "region", "start" ],
+      "additionalProperties" : false
+    },
+    "MomentRecord" : {
+      "type" : "object",
+      "properties" : {
+        "art" : {
+          "$ref" : "#/$defs/ArtRecord"
+        },
+        "cards" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/CardRecord"
+          }
+        },
+        "doors" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/DoorRecord"
+          }
+        },
+        "end" : {
+          "type" : "integer"
+        },
+        "featured" : {
+          "type" : "boolean"
+        },
+        "focus" : {
+          "type" : "integer"
+        },
+        "hook" : {
+          "type" : "string"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "period" : {
+          "type" : "string"
+        },
+        "place" : {
+          "type" : "string"
+        },
+        "region" : {
+          "type" : "string"
+        },
+        "start" : {
+          "type" : "integer"
+        },
+        "status" : {
+          "$ref" : "#/$defs/PublicationStatus"
+        },
+        "world" : {
+          "$ref" : "#/$defs/WorldRecord"
+        }
+      },
+      "required" : [ "end", "focus", "hook", "id", "period", "place", "region", "start", "status" ],
+      "additionalProperties" : false
+    },
+    "ParticipantRecord" : {
+      "type" : "object",
+      "properties" : {
+        "person" : {
+          "type" : "string"
+        },
+        "role" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "person", "role" ],
+      "additionalProperties" : false
+    },
+    "PersonRecord" : {
+      "type" : "object",
+      "properties" : {
+        "approximate" : {
+          "type" : "boolean"
+        },
+        "bio" : {
+          "type" : "string"
+        },
+        "born" : {
+          "type" : "integer"
+        },
+        "died" : {
+          "type" : "integer"
+        },
+        "domain" : {
+          "$ref" : "#/$defs/Domain"
+        },
+        "id" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "occupation" : {
+          "type" : "string"
+        },
+        "region" : {
+          "type" : "string"
+        },
+        "wikipedia" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "born", "domain", "id", "name", "occupation", "region" ],
+      "additionalProperties" : false
+    },
+    "PublicationStatus" : {
+      "type" : "string",
+      "enum" : [ "DRAFT", "PUBLISHED" ]
+    },
+    "RegionRecord" : {
+      "type" : "object",
+      "properties" : {
+        "id" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "id", "name" ],
+      "additionalProperties" : false
+    },
+    "WorldRecord" : {
+      "type" : "object",
+      "properties" : {
+        "arts" : {
+          "type" : "string"
+        },
+        "everyday" : {
+          "type" : "string"
+        },
+        "governs" : {
+          "type" : "string"
+        },
+        "meanwhile" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "arts", "everyday", "governs", "meanwhile" ],
+      "additionalProperties" : false
+    }
+  },
+  "type" : "object",
+  "properties" : {
+    "connections" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/ConnectionRecord"
+      }
+    },
+    "eras" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/EraRecord"
+      }
+    },
+    "events" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/EventRecord"
+      }
+    },
+    "lives" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/LifeRecord"
+      }
+    },
+    "moments" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/MomentRecord"
+      }
+    },
+    "people" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/PersonRecord"
+      }
+    },
+    "regions" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/RegionRecord"
+      }
+    }
+  },
+  "required" : [ "connections", "eras", "events", "lives", "moments", "people", "regions" ],
+  "additionalProperties" : false,
+  "title" : "Who Lived When release",
+  "description" : "A release as a whole. On disk, each array is a JSON Lines file of the same name and each moment a file in moments/: validate a line or a file against its record in $defs. See sample/README.md."
+}
