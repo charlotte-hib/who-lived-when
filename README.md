@@ -95,7 +95,7 @@ The backend's API, described in [`api/openapi.yaml`](api/openapi.yaml) (OpenAPI 
 - `POST /api/events` counts one anonymous visitor event (see [Metrics](#metrics)): 204 when counted, 400 when outside the allowed names and values, 413 above 1 KB.
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
 
-**Spec first.** The spec is the contract: the backend's controller interfaces and response models are generated from it at build time (openapi-generator, `kotlin-spring`, interfaces and models only), and the controllers implement them. Change the spec, not the generated code (`backend/site/build/generated/openapi`). CI lints it with Redocly (`api/redocly.yaml`).
+**Spec first.** The spec is the contract: the backend's controller interfaces and response models are generated from it at build time (openapi-generator, `kotlin-spring`, interfaces and models only), and the controllers implement them. Change the spec, not the generated code (`backend/site/build/generated/openapi`). CI lints it with Redocly (`api/redocly.yaml`). On `./gradlew bootRun`, Swagger UI shows it at http://localhost:8080/swagger-ui.html; it is not in the production image.
 
 ### API tests
 
