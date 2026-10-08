@@ -14,8 +14,9 @@ services:
     image: ${BACKEND_IMAGE:-who-lived-when-backend}
     build:
       context: ./backend
-      # The release the image serves (backend/Dockerfile).
+      # The API contract the build generates code from, and the release the image serves (backend/Dockerfile).
       additional_contexts:
+        api: ./api
         sample: ./sample
     restart: unless-stopped
     mem_limit: 768m

@@ -5,7 +5,7 @@ import org.springframework.transaction.annotation.Transactional
 import dev.wholivedwhen.repository.PersonRepository
 import dev.wholivedwhen.support.foldForSearch
 import dev.wholivedwhen.web.ApiMapper
-import dev.wholivedwhen.web.SearchResultsDto
+import dev.wholivedwhen.api.model.SearchResultsDto
 
 private const val MAX_PEOPLE = 6
 private const val MAX_MOMENTS = 4

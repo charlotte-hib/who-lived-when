@@ -15,9 +15,9 @@ import dev.wholivedwhen.repository.PersonRepository
 import dev.wholivedwhen.support.currentYear
 import dev.wholivedwhen.support.yearsBetween
 import dev.wholivedwhen.web.ApiMapper
-import dev.wholivedwhen.web.ConnectionDto
-import dev.wholivedwhen.web.PersonDetailDto
-import dev.wholivedwhen.web.PersonDto
+import dev.wholivedwhen.api.model.ConnectionDto
+import dev.wholivedwhen.api.model.PersonDetailDto
+import dev.wholivedwhen.api.model.PersonDto
 import kotlin.math.abs
 
 /** The age a person is shown at when no year is asked for: well into their adult life. */

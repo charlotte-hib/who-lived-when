@@ -83,7 +83,7 @@ export ANTHROPIC_API_KEY=...
 
 ## API
 
-The backend's API. Through the site, only the paths the browser calls are forwarded (`/api/search`, `/api/eras/{id}`, `/api/years/{year}/people` and `POST /api/events`); the frontend's server fetches the rest while rendering.
+The backend's API, described in [`api/openapi.yaml`](api/openapi.yaml) (OpenAPI 3.0). Through the site, only the paths the browser calls are forwarded (`/api/search`, `/api/eras/{id}`, `/api/years/{year}/people` and `POST /api/events`); the frontend's server fetches the rest while rendering.
 
 - `GET /api/moments` lists published moments, with who governed, the story length and its cast.
 - `GET /api/moments/{id}` returns a moment: the world around it, its eras, people, everyday lives, events and doors.
@@ -94,6 +94,8 @@ The backend's API. Through the site, only the paths the browser calls are forwar
 - `GET /api/regions`, `GET /api/eras`, `GET /api/eras/{id}`.
 - `POST /api/events` counts one anonymous visitor event (see [Metrics](#metrics)): 204 when counted, 400 when outside the allowed names and values, 413 above 1 KB.
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
+
+**Spec first.** The spec is the contract: the backend's controller interfaces and response models are generated from it at build time (openapi-generator, `kotlin-spring`, interfaces and models only), and the controllers implement them. Change the spec, not the generated code (`backend/site/build/generated/openapi`). CI lints it with Redocly (`api/redocly.yaml`).
 
 ### API tests
 
