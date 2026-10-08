@@ -2,10 +2,13 @@ FROM eclipse-temurin:25-jdk AS build
 WORKDIR /src
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
-RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon dependencies > /dev/null
-COPY src src
-RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon bootJar \
-    && cp "$(find build/libs -name '*.jar' ! -name '*-plain.jar')" /app.jar
+COPY core/build.gradle.kts core/
+COPY site/build.gradle.kts site/
+RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon :core:dependencies :site:dependencies > /dev/null
+COPY core/src core/src
+COPY site/src site/src
+RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon :site:bootJar \
+    && cp "$(find site/build/libs -name '*.jar' ! -name '*-plain.jar')" /app.jar
 
 FROM eclipse-temurin:25-jre
 RUN useradd --system --home /app app
