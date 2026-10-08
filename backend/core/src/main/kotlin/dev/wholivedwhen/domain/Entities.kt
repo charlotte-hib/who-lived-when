@@ -24,14 +24,14 @@ const val LONG_TEXT = 2000
 
 /** A place, seen through today's borders, e.g. "FR" for France. Who governed it changes over time: see [Era]. */
 @Entity
-class Region(
+class Region @Default constructor(
     @Id val code: String,
     val name: String,
 )
 
 /** A region at a time span, named after who governed it. Never a bare year. Both years are inclusive. */
 @Entity
-class Era(
+class Era @Default constructor(
     @Id val id: String,
     @ManyToOne(fetch = FetchType.LAZY) val region: Region,
     val label: String,
@@ -41,7 +41,7 @@ class Era(
 )
 
 @Entity
-class Person(
+class Person @Default constructor(
     @Id val id: String,
     @Column(unique = true) val slug: String,
     val name: String,
@@ -63,7 +63,7 @@ class Person(
 
 /** A typical existence in an era, shown as representative of the period rather than as a real person. */
 @Entity
-class Life(
+class Life @Default constructor(
     @Id val id: String,
     @ManyToOne(fetch = FetchType.LAZY) val era: Era,
     val label: String,
@@ -74,7 +74,7 @@ class Life(
 
 /** A dated, sourced event. The only way two people get connected. */
 @Entity
-class Event(
+class Event @Default constructor(
     @Id val id: String,
     @ManyToOne(fetch = FetchType.LAZY) val era: Era,
     val title: String,
@@ -106,7 +106,7 @@ class EventParticipant(
  * Stored once per pair; [year] is when the link is documented.
  */
 @Entity
-class Connection(
+class Connection @Default constructor(
     @Id @GeneratedValue val id: Long? = null,
     @ManyToOne(fetch = FetchType.LAZY) val first: Person,
     @ManyToOne(fetch = FetchType.LAZY) val second: Person,
@@ -125,7 +125,7 @@ enum class PublicationStatus { DRAFT, PUBLISHED }
 
 /** A public-domain image with its credit and the page it comes from. */
 @Embeddable
-data class Artwork(
+data class Artwork @Default constructor(
     @Column(length = LONG_TEXT) val url: String,
     val credit: String,
     @Column(length = LONG_TEXT) val sourceUrl: String,
@@ -133,7 +133,7 @@ data class Artwork(
 
 /** The world around a moment: one line per domain, and what is happening elsewhere at the same time. */
 @Embeddable
-data class WorldAround(
+data class WorldAround @Default constructor(
     @Column(length = LONG_TEXT) val governs: String,
     @Column(length = LONG_TEXT) val everyday: String,
     @Column(length = LONG_TEXT) val arts: String,
@@ -142,7 +142,7 @@ data class WorldAround(
 
 /** A place over a few years, small enough to tell as one story. The unit people step into. */
 @Entity
-class Moment(
+class Moment @Default constructor(
     @Id val id: String,
     @ManyToOne(fetch = FetchType.LAZY) val region: Region,
     /** Where, e.g. "Paris". */
@@ -173,7 +173,7 @@ enum class CardType { SCENE, PERSON, LIFE, EVENT }
 
 /** One screen of a moment's story. Person, life and event cards point at the records they are about. */
 @Entity
-class StoryCard(
+class StoryCard @Default constructor(
     @Id @GeneratedValue val id: Long? = null,
     @ManyToOne(fetch = FetchType.LAZY) val moment: Moment,
     val position: Int,
@@ -192,7 +192,7 @@ class StoryCard(
 
 /** A curated way out of a moment's story into another moment, e.g. "Meanwhile, elsewhere". */
 @Entity
-class Door(
+class Door @Default constructor(
     @Id @GeneratedValue val id: Long? = null,
     @ManyToOne(fetch = FetchType.LAZY) val origin: Moment,
     @ManyToOne(fetch = FetchType.LAZY) val target: Moment,

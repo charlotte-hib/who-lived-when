@@ -61,7 +61,7 @@ Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API test
 
 Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers) and the release compiler, and `site` the public API, the only project in the production image.
 
-The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir`, checks it and compiles it into the database (`ReleaseReader`, `ReleaseCompiler`, `ReleaseLoader`). `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
+The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir` (Jackson), checks it and maps it to entities (MapStruct, `ReleaseMapper`), then stores it (`ReleaseLoader`). `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
 
 ### Frontend (`frontend/`)
 

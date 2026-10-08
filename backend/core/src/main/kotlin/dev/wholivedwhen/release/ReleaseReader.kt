@@ -9,10 +9,10 @@ import kotlin.io.path.extension
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.nameWithoutExtension
-import kotlin.io.path.readLines
 
 /**
  * Reads a release directory: a JSON Lines file per kind of record, sorted by id, and a JSON file per moment.
+ * Jackson reads the records; this checks what Jackson cannot: the order and that each id appears once.
  * Strict, so that a typo fails here rather than going missing: unknown fields, missing fields, duplicates and
  * lines out of order are errors that name the file and the line.
  */
@@ -38,19 +38,25 @@ object ReleaseReader {
         val file = "$name.jsonl"
         val path = dir.resolve(file)
         if (!Files.isRegularFile(path)) throw InvalidReleaseException("$file is missing")
+        val records = mutableListOf<T>()
         var previous: List<String>? = null
-        return path.readLines().mapIndexed { index, line ->
-            val where = "$file:${index + 1}"
-            val record = parse(where) { mapper.readValue(line, T::class.java) }
-            val current = key(record)
-            previous?.let {
-                val order = compareKeys(it, current)
-                if (order == 0) throw InvalidReleaseException("$where: ${current.joinToString(" ")} appears twice")
-                if (order > 0) throw InvalidReleaseException("$where: ${current.joinToString(" ")} is out of order")
+        parse(file) {
+            mapper.readerFor(T::class.java).readValues<T>(path).use { lines ->
+                while (lines.hasNextValue()) {
+                    val where = "$file:${lines.currentLocation().lineNr}"
+                    val record = parse(where) { lines.nextValue() }
+                    val current = key(record)
+                    previous?.let {
+                        val order = compareKeys(it, current)
+                        if (order == 0) throw InvalidReleaseException("$where: ${current.joinToString(" ")} appears twice")
+                        if (order > 0) throw InvalidReleaseException("$where: ${current.joinToString(" ")} is out of order")
+                    }
+                    previous = current
+                    records += record
+                }
             }
-            previous = current
-            record
         }
+        return records
     }
 
     private fun moments(dir: Path): List<MomentRecord> {
@@ -58,17 +64,19 @@ object ReleaseReader {
         val files = Files.list(dir).use { paths -> paths.filter { it.extension == "json" }.sorted().toList() }
         return files.map { path ->
             val where = "moments/${path.name}"
-            val moment = parse(where) { Files.newInputStream(path).use { mapper.readValue(it, MomentRecord::class.java) } }
+            val moment = parse(where) { mapper.readValue(path, MomentRecord::class.java) }
             if (moment.id != path.nameWithoutExtension) throw InvalidReleaseException("$where: its id is ${moment.id}")
             moment
         }
     }
 
-    private fun <T> parse(where: String, read: () -> T): T =
+    /** Runs [read], naming [where] in any parsing error, with the line when [where] does not have it yet. */
+    private inline fun <T> parse(where: String, read: () -> T): T =
         try {
             read()
         } catch (e: JacksonException) {
-            throw InvalidReleaseException("$where: ${e.originalMessage}")
+            val line = e.location?.lineNr?.takeIf { it > 0 && ':' !in where }?.let { ":$it" }.orEmpty()
+            throw InvalidReleaseException("$where$line: ${e.originalMessage}")
         }
 
     private fun compareKeys(a: List<String>, b: List<String>): Int =
