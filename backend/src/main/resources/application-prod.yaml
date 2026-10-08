@@ -7,6 +7,6 @@ spring:
 
 management:
   server:
-    # Actuator (health, Prometheus metrics) on a port of its own: the frontend only forwards /api/* to 8080,
+    # Actuator (health, Prometheus metrics) on a port of its own: the frontend forwards only a few /api paths to 8080,
     # and Compose publishes neither port, so only Prometheus, on the Compose network, can read it.
     port: 8081
