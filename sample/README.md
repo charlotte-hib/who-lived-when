@@ -4,6 +4,8 @@ The data the site serves: about a hundred people, their eras, events and connect
 
 At startup the backend reads the directory in `app.release.dir`, checks it (`ReleaseReader`), resolves its references and sets every life and event in its era (`ReleaseCompiler`, `ReleaseMapper`), then stores it.
 
+[`release.schema.json`](release.schema.json) is the format as a JSON Schema (draft 2020-12): one definition per kind of record in `$defs`, to validate a line or a moment file against. It is generated from the record classes in `backend/core`: run `./gradlew :core:releaseSchema` in `backend/` after changing them. The backend's tests fail when it is out of date, or when a record in `sample/` does not match it.
+
 ## Files
 
 | File | One record per | Points at |
