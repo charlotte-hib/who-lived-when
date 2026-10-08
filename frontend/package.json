@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "api:types": "openapi-typescript ../api/openapi.yaml --output lib/api-schema.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -15,6 +16,7 @@
     "lucide-react": "^1.49.0",
     "motion": "^13.5.0",
     "next": "16.3.8",
+    "openapi-fetch": "0.17.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "shadcn": "^4.21.1",
@@ -27,7 +29,13 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "openapi-typescript": "7.13.0",
     "tailwindcss": "^4",
     "typescript": "^6"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }

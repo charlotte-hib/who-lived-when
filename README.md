@@ -65,7 +65,7 @@ The data is a **release**: a directory of JSON Lines files, described in [`sampl
 
 ### Frontend (`frontend/`)
 
-Next.js 16 App Router with server components for data. The story player, the moment's year slider (Base UI) and search are client components. shadcn/ui, `motion` for transitions, Lucide icons, and a dark "gallery" theme.
+Next.js 16 App Router with server components for data. Calls to the backend go through `openapi-fetch`, typed by `lib/api-schema.ts`, which `openapi-typescript` generates from `api/openapi.yaml` (`npm run api:types`; CI fails when it is out of date). The story player, the moment's year slider (Base UI) and search are client components. shadcn/ui, `motion` for transitions, Lucide icons, and a dark "gallery" theme.
 
 `proxy.ts` limits how fast one visitor can load pages and call the API: 300 requests at once, then 5 a second, and `429 Too Many Requests` with `Retry-After` beyond that (`lib/rate-limit.ts`). A visitor is an IPv4 address or an IPv6 /64, taken from the `X-Forwarded-For` header that Caddy sets. Static files and Next.js prefetches (which hold no data) do not count. Requests without that header (local runs, CI) and from private addresses are not limited. The frontend's log counts refused requests, never with an address.
 
@@ -95,7 +95,7 @@ The backend's API, described in [`api/openapi.yaml`](api/openapi.yaml) (OpenAPI 
 - `POST /api/events` counts one anonymous visitor event (see [Metrics](#metrics)): 204 when counted, 400 when outside the allowed names and values, 413 above 1 KB.
 - H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
 
-**Spec first.** The spec is the contract: the backend's controller interfaces and response models are generated from it at build time (openapi-generator, `kotlin-spring`, interfaces and models only), and the controllers implement them. Change the spec, not the generated code (`backend/site/build/generated/openapi`). The spec's constraints (`perRegion` from 1 to 5, `exclude` as a two-letter code, a query of at most 100 characters) become Bean Validation annotations, which Spring enforces: a request outside them gets a 400. Errors are RFC 9457 Problem Details (`application/problem+json`). CI lints it with Redocly (`api/redocly.yaml`). On `./gradlew bootRun`, Swagger UI shows it at http://localhost:8080/swagger-ui.html; it is not in the production image.
+**Spec first.** The spec is the contract: the backend's controller interfaces and response models are generated from it at build time (openapi-generator, `kotlin-spring`, interfaces and models only), and the controllers implement them. The frontend's types and client come from it too (`openapi-typescript`, `openapi-fetch`). Change the spec, not the generated code (`backend/site/build/generated/openapi`). The spec's constraints (`perRegion` from 1 to 5, `exclude` as a two-letter code, a query of at most 100 characters) become Bean Validation annotations, which Spring enforces: a request outside them gets a 400. Errors are RFC 9457 Problem Details (`application/problem+json`). CI lints it with Redocly (`api/redocly.yaml`). On `./gradlew bootRun`, Swagger UI shows it at http://localhost:8080/swagger-ui.html; it is not in the production image.
 
 ### API tests
 
