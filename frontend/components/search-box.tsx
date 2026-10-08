@@ -1,7 +1,7 @@
 "use client";
 
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { LoaderCircle, Search } from "lucide-react";
+import { LoaderCircle, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { PersonAvatar } from "@/components/person-avatar";
@@ -112,9 +112,10 @@ export function SearchBox({ className }: { className?: string }) {
     // Picking a result opens it (go) rather than writing its name into the box.
     if (reason === "item-press") return;
     setQuery(next);
-    // Base UI opens the popup for typing only; this also covers pasting, dictation and autofill.
-    if (reason === "input-change") setOpen(true);
-    // Below 2 letters the search starts over: a new one should not show the last one's results.
+    // Base UI opens the popup for typing only; this also covers pasting, dictation and autofill. After the clear
+    // button, the popup shows the hint for the next search.
+    if (reason === "input-change" || reason === "clear-press") setOpen(true);
+    // Below 2 letters the search starts over (and counts again): a new one should not show the last one's results.
     if (next.trim().length < MIN_LENGTH) setAnswer(null);
   };
 
@@ -141,9 +142,17 @@ export function SearchBox({ className }: { className?: string }) {
           placeholder="Search a name you know…"
           aria-label="Search people and moments"
           aria-describedby={hintId}
-          // 16px on touch screens: below that, Safari on iPhone zooms the page in when the box gets focus.
-          className="w-full rounded-full border bg-background/60 py-2 pr-4 pl-9 text-sm backdrop-blur placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none pointer-coarse:text-base"
+          // 16px on touch screens: below that, Safari on iPhone zooms the page in when the box gets focus. A search
+          // field keeps the phone keyboard's search key, without the browser's own clear button: ours follows the theme.
+          className="w-full rounded-full border bg-background/60 py-2 pr-10 pl-9 text-sm backdrop-blur placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none pointer-coarse:text-base [&::-webkit-search-cancel-button]:appearance-none"
         />
+        {/* Shown while there is text. It keeps focus in the box, and leaves the keyboard to Escape. */}
+        <Autocomplete.Clear
+          aria-label="Clear search"
+          className="absolute top-1/2 right-1.5 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+        >
+          <X aria-hidden className="size-4" />
+        </Autocomplete.Clear>
         {/* After the input, which its backdrop blur would otherwise paint over. A request quicker than the delay
             shows no spinner, so the icon does not flicker as you type. */}
         <Search aria-hidden className={cn("pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground transition-opacity", loading && "opacity-0 delay-300")} />
