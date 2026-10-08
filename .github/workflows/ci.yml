@@ -33,6 +33,11 @@ jobs:
           distribution: temurin
           java-version-file: .java-version
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      - name: Lint the API contract
+        run: npx --yes @redocly/cli@2.54.2 lint ../api/openapi.yaml --config ../api/redocly.yaml
       - run: ./gradlew test
 
   frontend:

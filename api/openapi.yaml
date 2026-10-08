@@ -1,0 +1,775 @@
+openapi: 3.0.3
+info:
+  title: Who Lived When API
+  version: 1.0.0
+  description: |
+    The backend's public API: moments, people, eras and regions, read-only, and one endpoint that counts anonymous
+    visitor events.
+
+    Through the site, only the paths the browser calls are forwarded (`/api/search`, `/api/eras/{id}`,
+    `/api/years/{year}/people` and `POST /api/events`); the frontend's server fetches the rest while rendering.
+
+    Years are integers, negative for BCE. There is no year 0: 1 BCE is followed by 1 CE.
+  license:
+    name: MIT
+    url: https://github.com/charlotte-hib/who-lived-when/blob/main/LICENSE
+servers:
+  - url: /
+    description: The backend (port 8080 on a local run), or the site, which forwards the paths the browser calls.
+# Public and read-only apart from the visitor events: no authentication.
+security: []
+tags:
+  - name: moments
+    description: A place over a few years, small enough to tell as one story.
+  - name: people
+    description: People in the world around them.
+  - name: eras
+    description: A region at a time span, named after who governed it.
+  - name: regions
+    description: Places, seen through today's borders.
+  - name: search
+    description: Accent-insensitive search over people and moments.
+  - name: events
+    description: Anonymous visitor events, counted and never stored.
+
+paths:
+  /api/moments:
+    get:
+      tags: [moments]
+      operationId: listMoments
+      summary: Published moments
+      description: Every published moment, with who governed, the length of its story and its cast.
+      responses:
+        "200":
+          description: The published moments, by focus year.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MomentSummary"
+
+  /api/moments/{id}:
+    get:
+      tags: [moments]
+      operationId: getMoment
+      summary: A moment
+      description: The world around a moment, its eras, people, everyday lives, events and doors.
+      parameters:
+        - $ref: "#/components/parameters/MomentId"
+      responses:
+        "200":
+          description: The moment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MomentDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/moments/{id}/story:
+    get:
+      tags: [moments]
+      operationId: getStory
+      summary: A moment's story
+      description: The story cards of a moment, in order, and its doors to other moments.
+      parameters:
+        - $ref: "#/components/parameters/MomentId"
+      responses:
+        "200":
+          description: The story.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Story"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/people/{slug}:
+    get:
+      tags: [people]
+      operationId: getPerson
+      summary: A person in a year
+      description: |
+        A person in the world around them in a year, with their life in their time. Without a year, or with a year
+        outside their life, the page looks at their prime.
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: The person's slug, e.g. `emile-zola`.
+          schema:
+            type: string
+        - name: year
+          in: query
+          required: false
+          description: The year to look at them in.
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: The person.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/years/{year}/people:
+    get:
+      tags: [people]
+      operationId: listAliveElsewhere
+      summary: People alive elsewhere in a year
+      description: A few people alive in a year in each region but one, preferring those in the middle of their lives.
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+        - name: exclude
+          in: query
+          required: true
+          description: The region to leave out, e.g. `FR`.
+          schema:
+            type: string
+        - name: perRegion
+          in: query
+          required: false
+          description: How many people per region, from 1 to 5. Values outside that range are brought back into it.
+          schema:
+            type: integer
+            format: int32
+            default: 2
+      responses:
+        "200":
+          description: The people, by region.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Person"
+        "400":
+          description: A required parameter is missing or not a number.
+
+  /api/search:
+    get:
+      tags: [search]
+      operationId: search
+      summary: Search people and moments
+      description: Accent-insensitive, so `zola` finds Émile Zola. Fewer than two characters find nothing.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Names that start with the query first, then by birth.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+        "400":
+          description: The query is missing.
+
+  /api/regions:
+    get:
+      tags: [regions]
+      operationId: listRegions
+      summary: Regions
+      responses:
+        "200":
+          description: The regions, by name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Region"
+
+  /api/eras:
+    get:
+      tags: [eras]
+      operationId: listEras
+      summary: Eras
+      responses:
+        "200":
+          description: Every era, by start year.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Era"
+
+  /api/eras/{id}:
+    get:
+      tags: [eras]
+      operationId: getEra
+      summary: An era
+      description: An era with the people alive in it by domain, its events and the moments set in it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The era's id, e.g. `fr-third-republic`.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The era.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EraDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/events:
+    post:
+      tags: [events]
+      operationId: recordEvent
+      summary: Count a visitor event
+      description: |
+        Counts one anonymous event from the browser. Nothing identifies the visitor: no address, user agent, cookie
+        or id is read or kept. Every value must come from a fixed vocabulary. `navigator.sendBeacon` sends
+        `text/plain`, so that is accepted too.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisitorEvent"
+          text/plain:
+            schema:
+              type: string
+              description: The same JSON, as sent by `navigator.sendBeacon`.
+      responses:
+        "204":
+          description: Counted.
+        "400":
+          description: Not JSON, or a name or value outside the vocabularies.
+        "413":
+          description: Larger than 1 KB.
+
+components:
+  parameters:
+    MomentId:
+      name: id
+      in: path
+      required: true
+      description: The moment's id, e.g. `paris-1870s`.
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: No such record, or not published.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      description: Spring Boot's error body.
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        path:
+          type: string
+
+    Domain:
+      description: What a person is known for.
+      type: string
+      enum: [POWER, ARTS, EVERYDAY]
+
+    Region:
+      description: A place, seen through today's borders.
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          example: FR
+        name:
+          type: string
+          example: France
+
+    Artwork:
+      description: A public-domain image with its credit and the page it comes from.
+      type: object
+      required: [url, credit, sourceUrl]
+      properties:
+        url:
+          type: string
+        credit:
+          type: string
+        sourceUrl:
+          type: string
+
+    WorldAround:
+      description: The world around a moment, one line per domain, and what is happening elsewhere at the same time.
+      type: object
+      required: [governs, everyday, arts, meanwhile]
+      properties:
+        governs:
+          type: string
+        everyday:
+          type: string
+        arts:
+          type: string
+        meanwhile:
+          type: string
+
+    Era:
+      description: A region at a time span, named after who governed it. Both years are inclusive.
+      type: object
+      required: [id, label, regionCode, region, governedBy, startYear, endYear]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        regionCode:
+          type: string
+        region:
+          type: string
+        governedBy:
+          type: string
+        startYear:
+          type: integer
+          format: int32
+        endYear:
+          type: integer
+          format: int32
+
+    Person:
+      type: object
+      required: [slug, name, birthYear, deathYear, datesApproximate, regionCode, region, domain, occupation, bioShort, portraitUrl]
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        birthYear:
+          type: integer
+          format: int32
+        deathYear:
+          type: integer
+          format: int32
+          nullable: true
+        datesApproximate:
+          description: True when the birth or death year is only known approximately.
+          type: boolean
+        regionCode:
+          type: string
+        region:
+          type: string
+        domain:
+          $ref: "#/components/schemas/Domain"
+        occupation:
+          type: string
+        bioShort:
+          description: One or two sentences, hand-written or the lead of the Wikipedia article.
+          type: string
+          nullable: true
+        portraitUrl:
+          type: string
+          nullable: true
+
+    Life:
+      description: A typical existence in an era, shown as representative of the period rather than as a real person.
+      type: object
+      required: [id, label, description, startYear, endYear]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        description:
+          type: string
+        startYear:
+          type: integer
+          format: int32
+        endYear:
+          type: integer
+          format: int32
+
+    Participant:
+      description: Someone in an event, with their part in it, e.g. "author".
+      type: object
+      required: [person, role]
+      properties:
+        person:
+          $ref: "#/components/schemas/Person"
+        role:
+          type: string
+
+    Event:
+      description: A dated, sourced event.
+      type: object
+      required: [id, title, year, description, sourceUrl, participants]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        year:
+          type: integer
+          format: int32
+        description:
+          type: string
+        sourceUrl:
+          type: string
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+
+    EraDetail:
+      type: object
+      required: [era, people, events, moments]
+      properties:
+        era:
+          $ref: "#/components/schemas/Era"
+        people:
+          description: The people alive in the era, by domain (`POWER`, `ARTS`, `EVERYDAY`). Empty domains are left out.
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/Person"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        moments:
+          description: The moments set under this regime, to step into.
+          type: array
+          items:
+            $ref: "#/components/schemas/MomentSummary"
+
+    MomentSummary:
+      description: What a moment shows on a card, enough to choose it, not to explore it.
+      type: object
+      required: [id, regionCode, region, place, period, startYear, endYear, focusYear, hook, art, governedBy, storyCards, cast, featured]
+      properties:
+        id:
+          type: string
+        regionCode:
+          type: string
+        region:
+          type: string
+        place:
+          type: string
+          example: Paris
+        period:
+          type: string
+          example: 1870s
+        startYear:
+          type: integer
+          format: int32
+        endYear:
+          type: integer
+          format: int32
+        focusYear:
+          description: The year the moment opens on.
+          type: integer
+          format: int32
+        hook:
+          type: string
+        art:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/Artwork"
+          nullable: true
+        governedBy:
+          description: Who governed the place in the focus year.
+          type: string
+          nullable: true
+        storyCards:
+          description: Number of cards in the story; 0 when no story is written yet.
+          type: integer
+          format: int32
+        cast:
+          description: The people the story features.
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        featured:
+          description: Shown first on the start page.
+          type: boolean
+
+    Door:
+      description: A way out of a story into another moment, e.g. "Meanwhile, elsewhere".
+      type: object
+      required: [kind, text, target, faces]
+      properties:
+        kind:
+          type: string
+        text:
+          type: string
+        target:
+          $ref: "#/components/schemas/MomentSummary"
+        faces:
+          description: People to show on the door, when it follows someone.
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+
+    MomentDetail:
+      description: Everything the moment page needs; scrubbing through its years happens in the browser.
+      type: object
+      required: [moment, world, eras, people, lives, events, doors]
+      properties:
+        moment:
+          $ref: "#/components/schemas/MomentSummary"
+        world:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/WorldAround"
+          nullable: true
+        eras:
+          type: array
+          items:
+            $ref: "#/components/schemas/Era"
+        people:
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        lives:
+          type: array
+          items:
+            $ref: "#/components/schemas/Life"
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        doors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Door"
+
+    CardType:
+      type: string
+      enum: [SCENE, PERSON, LIFE, EVENT]
+
+    StoryCard:
+      description: One screen of a moment's story. Person, life and event cards carry the record they are about.
+      type: object
+      required: [type, kicker, title, text, year, person, life, event, art]
+      properties:
+        type:
+          $ref: "#/components/schemas/CardType"
+        kicker:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        text:
+          type: string
+          nullable: true
+        year:
+          description: The year the card is set in, used for ages.
+          type: integer
+          format: int32
+          nullable: true
+        person:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/Person"
+          nullable: true
+        life:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/Life"
+          nullable: true
+        event:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/Event"
+          nullable: true
+        art:
+          description: Replaces the moment's artwork while this card is shown.
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/Artwork"
+          nullable: true
+
+    Story:
+      type: object
+      required: [moment, cards, doors]
+      properties:
+        moment:
+          $ref: "#/components/schemas/MomentSummary"
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoryCard"
+        doors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Door"
+
+    LifeLineKind:
+      type: string
+      enum: [BIRTH, ERA, EVENT, OWN_EVENT, DEATH]
+
+    LifeLine:
+      description: One line of "their life in their time", a dated change around them, with their age.
+      type: object
+      required: [year, age, kind, text, role]
+      properties:
+        year:
+          type: integer
+          format: int32
+        age:
+          type: integer
+          format: int32
+          nullable: true
+        kind:
+          $ref: "#/components/schemas/LifeLineKind"
+        text:
+          type: string
+        role:
+          type: string
+          nullable: true
+
+    Connection:
+      description: Someone a person was linked to, how (a pair like "tea master and lord", or their role in a shared event), when, and the source.
+      type: object
+      required: [person, kind, year, text, sourceUrl]
+      properties:
+        person:
+          $ref: "#/components/schemas/Person"
+        kind:
+          type: string
+        year:
+          type: integer
+          format: int32
+        text:
+          type: string
+        sourceUrl:
+          type: string
+
+    PersonDetail:
+      type: object
+      required: [person, about, wikipediaUrl, year, age, world, worldMoment, lifeline, connections, aroundPeople, aroundLives, elsewhere, moments]
+      properties:
+        person:
+          $ref: "#/components/schemas/Person"
+        about:
+          description: The first paragraph of the Wikipedia article.
+          type: string
+          nullable: true
+        wikipediaUrl:
+          type: string
+          nullable: true
+        year:
+          description: The year the rest of the page looks at, the one asked for if they were alive then, else their prime.
+          type: integer
+          format: int32
+        age:
+          type: integer
+          format: int32
+        world:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/WorldAround"
+          nullable: true
+        worldMoment:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/MomentSummary"
+          nullable: true
+        lifeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/LifeLine"
+        connections:
+          description: Sourced links to other people, curated ones first, then shared documented events.
+          type: array
+          items:
+            $ref: "#/components/schemas/Connection"
+        aroundPeople:
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        aroundLives:
+          type: array
+          items:
+            $ref: "#/components/schemas/Life"
+        elsewhere:
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        moments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MomentSummary"
+
+    SearchResults:
+      type: object
+      required: [people, moments]
+      properties:
+        people:
+          type: array
+          items:
+            $ref: "#/components/schemas/Person"
+        moments:
+          type: array
+          items:
+            $ref: "#/components/schemas/MomentSummary"
+
+    VisitorEvent:
+      description: |
+        One anonymous event. Which fields count depends on `name`; the others are ignored.
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          enum:
+            - page_view
+            - story_started
+            - story_card_reached
+            - story_completed
+            - person_panel_opened
+            - person_full_page_opened
+            - search_used
+            - search_result_opened
+        page:
+          description: page_view, the page by template, never a URL.
+          type: string
+          enum: [home, moment, story, person]
+        moment:
+          description: A published moment's id, for page views of a moment or its story, and for story events.
+          type: string
+        card:
+          description: story_card_reached, the 1-based card.
+          type: integer
+          format: int32
+          minimum: 1
+        source:
+          description: person_panel_opened and person_full_page_opened, where the visitor came from.
+          type: string
+          enum: [home, moment, story, person, search, panel, direct, external]
+        kind:
+          description: search_result_opened, what was picked.
+          type: string
+          enum: [person, moment]
