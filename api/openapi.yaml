@@ -277,24 +277,36 @@ components:
     NotFound:
       description: No such record, or not published.
       content:
-        application/json:
+        application/problem+json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ProblemDetail"
+    BadRequest:
+      description: A parameter is missing, of the wrong type, or outside its constraints.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
 
   schemas:
-    Error:
-      description: Spring Boot's error body.
+    ProblemDetail:
+      description: An error, as RFC 9457 Problem Details.
       type: object
       properties:
-        timestamp:
+        type:
+          description: A URI that identifies the kind of problem; `about:blank` when the status says it all.
           type: string
-          format: date-time
+          default: about:blank
+        title:
+          description: The status's reason phrase, e.g. "Not Found".
+          type: string
         status:
           type: integer
           format: int32
-        error:
+        detail:
+          description: 'What went wrong with this request, e.g. "Unknown moment: atlantis".'
           type: string
-        path:
+        instance:
+          description: The path that was requested.
           type: string
 
     Domain:
