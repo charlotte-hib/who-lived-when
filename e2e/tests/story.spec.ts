@@ -1,5 +1,8 @@
 import { expect, test, type Locator } from "@playwright/test";
 
+/** The backend itself: the site does not forward story requests, so the tests read the cards from there. */
+const API_URL = process.env.API_URL ?? "http://localhost:8080";
+
 type StoryCard = {
   text: string | null;
   person: { bioShort: string | null } | null;
@@ -27,7 +30,7 @@ test("the featured story turns page by page with taps on the card text", async (
   await expect(page).toHaveURL(/\/moment\/[^/]+\/story$/);
 
   const momentId = new URL(page.url()).pathname.split("/")[2];
-  const response = await request.get(`/api/moments/${momentId}/story`);
+  const response = await request.get(`${API_URL}/api/moments/${momentId}/story`);
   expect(response.ok()).toBe(true);
   const { cards } = (await response.json()) as { cards: StoryCard[] };
   expect(cards.length).toBeGreaterThan(1);
@@ -51,7 +54,7 @@ test("a person opens over the story, and their full page leads back to it", asyn
   await expect(page).toHaveURL(/\/moment\/[^/]+\/story$/);
 
   const momentId = new URL(page.url()).pathname.split("/")[2];
-  const { cards } = (await (await request.get(`/api/moments/${momentId}/story`)).json()) as {
+  const { cards } = (await (await request.get(`${API_URL}/api/moments/${momentId}/story`)).json()) as {
     cards: { type: string; person: { name: string } | null }[];
   };
   const at = cards.findIndex((card) => card.type === "PERSON" && card.person);

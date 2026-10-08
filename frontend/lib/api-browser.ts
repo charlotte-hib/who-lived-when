@@ -2,7 +2,7 @@ import type { EraDetail, Person, SearchResults } from "@/lib/types";
 
 /**
  * Browser-side fetches, for data that changes while the user interacts.
- * Paths are relative: Next.js forwards `/api/*` to the backend (see `next.config.ts`).
+ * Paths are relative: Next.js forwards these paths, and only these, to the backend (see `next.config.ts`).
  */
 async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
   const res = await fetch(path, { signal });

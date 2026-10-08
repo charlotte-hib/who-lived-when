@@ -59,7 +59,7 @@ monitor() {
 healthy() {
   local attempt
   for attempt in $(seq 36); do
-    if probe / && probe /api/moments; then return 0; fi
+    if probe / && probe '/api/search?q=a'; then return 0; fi
     sleep 5
   done
   return 1
