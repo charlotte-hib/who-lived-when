@@ -5,6 +5,7 @@ plugins {
 	kotlin("kapt")
 	id("org.springframework.boot")
 	id("io.spring.dependency-management")
+	id("org.openapi.generator")
 }
 
 java {
@@ -40,6 +41,49 @@ kotlin {
 	compilerOptions {
 		freeCompilerArgs.addAll("-Xjsr305=strict")
 	}
+}
+
+// The API contract, api/openapi.yaml at the repository root, generates the controller interfaces and the response
+// models (dev.wholivedwhen.api); the controllers implement the interfaces. Nothing else is generated.
+val apiSpec = rootProject.layout.projectDirectory.file("../api/openapi.yaml")
+val generatedApi = layout.buildDirectory.dir("generated/openapi")
+
+openApiGenerate {
+	generatorName = "kotlin-spring"
+	inputSpec = apiSpec
+	outputDir = generatedApi
+	apiPackage = "dev.wholivedwhen.api"
+	modelPackage = "dev.wholivedwhen.api.model"
+	modelNameSuffix = "Dto"
+	// Only apis and models: no supporting files (application, build file, README, exception handler).
+	globalProperties = mapOf("apis" to "", "models" to "")
+	generateApiDocumentation = false
+	generateModelDocumentation = false
+	generateApiTests = false
+	generateModelTests = false
+	// POST /api/events stays hand-written: it reads the raw body to cap its size and to accept sendBeacon's text/plain.
+	openapiNormalizer = mapOf("FILTER" to "tag:moments|people|eras|regions|search")
+	configOptions = mapOf(
+		"useSpringBoot4" to "true",
+		"interfaceOnly" to "true",
+		"skipDefaultInterface" to "true",
+		"useTags" to "true",
+		"requestMappingMode" to "api_interface",
+		"useResponseEntity" to "false",
+		"useBeanValidation" to "false",
+		"documentationProvider" to "none",
+		"annotationLibrary" to "none",
+		"exceptionHandler" to "false",
+		"gradleBuildFile" to "false",
+	)
+}
+
+kotlin.sourceSets.main {
+	kotlin.srcDir(generatedApi.map { it.dir("src/main/kotlin") })
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+	dependsOn(tasks.openApiGenerate)
 }
 
 kapt {

@@ -15,10 +15,10 @@ import dev.wholivedwhen.repository.MomentRepository
 import dev.wholivedwhen.repository.PersonRepository
 import dev.wholivedwhen.repository.StoryCardRepository
 import dev.wholivedwhen.web.ApiMapper
-import dev.wholivedwhen.web.DoorDto
-import dev.wholivedwhen.web.MomentDetailDto
-import dev.wholivedwhen.web.MomentSummaryDto
-import dev.wholivedwhen.web.StoryDto
+import dev.wholivedwhen.api.model.DoorDto
+import dev.wholivedwhen.api.model.MomentDetailDto
+import dev.wholivedwhen.api.model.MomentSummaryDto
+import dev.wholivedwhen.api.model.StoryDto
 import kotlin.math.abs
 
 @Service

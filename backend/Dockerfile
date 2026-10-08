@@ -7,6 +7,9 @@ COPY site/build.gradle.kts site/
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon :core:dependencies :site:dependencies > /dev/null
 COPY core/src core/src
 COPY site/src site/src
+# The API contract the controller interfaces and models are generated from: the repository's api/, passed as the
+# build context named "api" (docker-compose.yml, and the images job in CI).
+COPY --from=api openapi.yaml /api/openapi.yaml
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon :site:bootJar \
     && cp "$(find site/build/libs -name '*.jar' ! -name '*-plain.jar')" /app.jar
 

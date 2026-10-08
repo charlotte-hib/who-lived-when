@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import dev.wholivedwhen.repository.RegionRepository
 import dev.wholivedwhen.web.ApiMapper
-import dev.wholivedwhen.web.RegionDto
+import dev.wholivedwhen.api.model.RegionDto
 
 @Service
 @Transactional(readOnly = true)

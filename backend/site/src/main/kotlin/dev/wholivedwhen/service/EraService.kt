@@ -8,8 +8,8 @@ import dev.wholivedwhen.repository.EraRepository
 import dev.wholivedwhen.repository.EventRepository
 import dev.wholivedwhen.repository.PersonRepository
 import dev.wholivedwhen.web.ApiMapper
-import dev.wholivedwhen.web.EraDetailDto
-import dev.wholivedwhen.web.EraDto
+import dev.wholivedwhen.api.model.EraDetailDto
+import dev.wholivedwhen.api.model.EraDto
 
 @Service
 @Transactional(readOnly = true)
@@ -30,7 +30,7 @@ class EraService(
             era = mapper.toDto(era),
             people = people.findAliveBetween(era.region.code, era.startYear, era.endYear)
                 .map(mapper::toDto)
-                .groupBy { it.domain },
+                .groupBy { it.domain.value },
             events = events.findByEraIdOrderByYearAscIdAsc(id).map(mapper::toDto),
             moments = moments.overlapping(era.region.code, era.startYear, era.endYear),
         )
