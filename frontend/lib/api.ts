@@ -1,21 +1,23 @@
 import { connection } from "next/server";
+import createClient from "openapi-fetch";
+import type { paths } from "@/lib/api-schema";
 import { BACKEND_URL } from "@/lib/backend-url";
-import type { MomentDetail, MomentSummary, PersonDetail, Story } from "@/lib/types";
+
+/** The backend, typed from api/openapi.yaml: paths, parameters and responses. */
+const api = createClient<paths>({ baseUrl: BACKEND_URL });
 
 /** Server-side fetch. Returns null for a 404 so pages can call `notFound()`. */
-async function get<T>(path: string): Promise<T | null> {
+async function load<T>(request: () => Promise<{ data?: T; response: Response }>): Promise<T | null> {
   // Data lives in the backend, so render at request time, not at build time.
   await connection();
-  const res = await fetch(`${BACKEND_URL}${path}`);
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
-  return res.json();
+  const { data, response } = await request();
+  if (response.status === 404) return null;
+  if (data === undefined) throw new Error(`GET ${response.url} failed: ${response.status}`);
+  return data;
 }
 
-const segment = encodeURIComponent;
-
-export const getMoments = async () => (await get<MomentSummary[]>("/api/moments")) ?? [];
-export const getMoment = (id: string) => get<MomentDetail>(`/api/moments/${segment(id)}`);
-export const getStory = (id: string) => get<Story>(`/api/moments/${segment(id)}/story`);
+export const getMoments = async () => (await load(() => api.GET("/api/moments"))) ?? [];
+export const getMoment = (id: string) => load(() => api.GET("/api/moments/{id}", { params: { path: { id } } }));
+export const getStory = (id: string) => load(() => api.GET("/api/moments/{id}/story", { params: { path: { id } } }));
 export const getPerson = (slug: string, year?: number) =>
-  get<PersonDetail>(`/api/people/${segment(slug)}${year ? `?year=${year}` : ""}`);
+  load(() => api.GET("/api/people/{slug}", { params: { path: { slug }, query: { year: year || undefined } } }));
