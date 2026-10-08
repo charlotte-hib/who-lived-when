@@ -6,6 +6,10 @@ spring:
       enabled: true
   datasource:
     url: jdbc:h2:mem:wholivedwhen
+  mvc:
+    # Errors (404, 400) as RFC 9457 Problem Details: application/problem+json, described in api/openapi.yaml.
+    problemdetails:
+      enabled: true
   jpa:
     open-in-view: false
     hibernate:

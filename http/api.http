@@ -74,10 +74,11 @@ GET {{baseUrl}}/api/moments/atlantis
 Accept: application/json
 
 > {%
-    client.test("404 with a JSON error", () => {
+    client.test("404 as Problem Details", () => {
         client.assert(response.status === 404, `status ${response.status}`);
-        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+        client.assert(response.contentType.mimeType === "application/problem+json", `content type ${response.contentType.mimeType}`);
         client.assert(response.body.status === 404, `body status ${response.body.status}`);
+        client.assert(response.body.detail === "Unknown moment: atlantis", `detail ${response.body.detail}`);
     });
 %}
 

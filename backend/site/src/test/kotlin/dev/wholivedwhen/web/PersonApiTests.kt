@@ -63,7 +63,13 @@ class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
             "/api/years/1875/people",
             "/api/years/later/people?exclude=FR",
             "/api/search?q=${"a".repeat(101)}",
-        ).forEach { path -> mockMvc.get(path).andExpect { status { isBadRequest() } } }
+        ).forEach { path ->
+            mockMvc.get(path).andExpect {
+                status { isBadRequest() }
+                content { contentType("application/problem+json") }
+                jsonPath("$.status") { value(400) }
+            }
+        }
     }
 
     @Test
