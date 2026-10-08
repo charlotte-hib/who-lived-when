@@ -6,6 +6,7 @@ plugins {
 	kotlin("jvm")
 	kotlin("plugin.allopen")
 	kotlin("plugin.jpa")
+	kotlin("kapt")
 }
 
 java {
@@ -13,6 +14,8 @@ java {
 		languageVersion = JavaLanguageVersion.of(25)
 	}
 }
+
+val mapstructVersion = "1.6.3"
 
 dependencies {
 	// Gradle's own BOM support, not the dependency-management plugin: without the Spring Boot plugin to
@@ -22,6 +25,8 @@ dependencies {
 	api("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
+	implementation("org.mapstruct:mapstruct:$mapstructVersion")
+	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("com.h2database:h2")
