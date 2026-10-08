@@ -47,6 +47,32 @@ test("Enter opens the first result", async ({ page }) => {
   await expect(page).toHaveURL(/\/person\/emile-zola$/);
 });
 
+// The site's clear button replaces the browser's own: it empties the box, keeps focus in it, and shows the hint.
+test("the clear button starts a new search", async ({ page }) => {
+  await page.goto("/");
+  const box = searchBox(page);
+  // While the popup is open, Base UI hides everything but the popup and the box from screen readers.
+  const clear = page.getByRole("button", { name: "Clear search", includeHidden: true });
+  await expect(clear).toHaveCount(0);
+
+  await box.pressSequentially("zola");
+  await expect(page.getByRole("option", { name: /Émile Zola/ })).toBeVisible();
+  await clear.click();
+
+  await expect(box).toHaveValue("");
+  await expect(box).toBeFocused();
+  await expect(page.getByText("Type a name, a place or a decade", { exact: true })).toBeVisible();
+  await expect(page.getByRole("option")).toHaveCount(0);
+  await expect(clear).toHaveCount(0);
+
+  // With the popup closed, it is there for screen readers too, by its name.
+  await box.pressSequentially("zola");
+  await box.press("Escape");
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(box).toHaveValue("");
+  await expect(box).toBeFocused();
+});
+
 test("a slow search shows that it is loading, and a failed one says so", async ({ page }) => {
   let release = () => {};
   const held = new Promise<void>((resolve) => (release = resolve));
