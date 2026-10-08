@@ -29,6 +29,8 @@ dependencies {
 	implementation("com.anthropic:anthropic-java:2.68.0")
 	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	runtimeOnly("com.h2database:h2")
+	// Swagger UI on ./gradlew bootRun only: developmentOnly stays out of the jar and the image.
+	developmentOnly("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
 	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 	testImplementation("org.springframework.boot:spring-boot-starter-restclient-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
@@ -108,4 +110,8 @@ tasks.test {
 tasks.bootRun {
 	workingDir = rootProject.projectDir
 	systemProperty("app.release.dir", sample.path)
+	// Swagger UI at http://localhost:8080/swagger-ui.html shows the spec itself, served from api/, rather than the one
+	// springdoc builds from the code.
+	systemProperty("spring.web.resources.static-locations", "classpath:/static/,file:${apiSpec.asFile.parent}/")
+	systemProperty("springdoc.swagger-ui.url", "/openapi.yaml")
 }

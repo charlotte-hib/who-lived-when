@@ -7,7 +7,7 @@ Spring Boot 4 + Kotlin backend (`backend/`), Next.js 16 frontend (`frontend/`, s
 - Java 25 (jenv, `.java-version`) and Node 24 (nvm, `.nvmrc`). The shell's default Node is older: run `source ~/.nvm/nvm.sh && nvm use` in `frontend/` before any npm command.
 - Backend: `cd backend && ./gradlew test` / `./gradlew bootRun` (port 8080).
 - Frontend: `cd frontend && npm run lint && npm run build` / `npm run dev` (port 3000).
-- API contract: `api/openapi.yaml`, spec first. The backend generates its controller interfaces and models from it (`./gradlew :site:openApiGenerate`, run by every build): change the spec, never the generated code. Lint: `npx @redocly/cli@2.54.2 lint api/openapi.yaml --config api/redocly.yaml`.
+- API contract: `api/openapi.yaml`, spec first. The backend generates its controller interfaces and models from it (`./gradlew :site:openApiGenerate`, run by every build): change the spec, never the generated code. Lint: `npx @redocly/cli@2.54.2 lint api/openapi.yaml --config api/redocly.yaml`. Swagger UI on `bootRun` only: http://localhost:8080/swagger-ui.html.
 - API tests: with the backend running (`--app.wikipedia.enrich=false`), `ijhttp --env-file http/http-client.env.json --env local http/api.http` (add `-V baseUrl=http://localhost:<port>` for another port). Never point them at production.
 - Both in Docker: `docker compose up --build`, then http://localhost:3000. Docker Desktop is often not running on this Mac.
 - End-to-end (Playwright, against a running site): `cd e2e && npm ci && npm run typecheck && npx playwright test` (`BASE_URL`, default http://localhost:3000). Locally it drives the installed Google Chrome: Playwright's Chromium does not run on macOS 13.
