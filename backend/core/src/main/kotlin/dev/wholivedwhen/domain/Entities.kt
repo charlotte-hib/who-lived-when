@@ -15,6 +15,7 @@ import jakarta.persistence.ManyToMany
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OrderBy
+import jakarta.persistence.OrderColumn
 
 enum class Domain { POWER, ARTS, EVERYDAY }
 
@@ -81,7 +82,9 @@ class Event(
     @Column(length = LONG_TEXT) val description: String,
     @Column(length = LONG_TEXT) val sourceUrl: String,
 ) {
+    /** In the order they were stored. */
     @OneToMany(mappedBy = "event", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @OrderBy("id")
     val participants: MutableList<EventParticipant> = mutableListOf()
 
     fun participant(person: Person, role: String) = apply {
@@ -199,5 +202,6 @@ class Door(
     /** People to show on the door, when it follows someone. */
     @ManyToMany
     @JoinTable(name = "door_face")
+    @OrderColumn(name = "position")
     val faces: List<Person> = emptyList(),
 )

@@ -41,12 +41,12 @@ class MomentService(
         return MomentDetailDto(
             moment = summarize(listOf(moment)).single(),
             world = moment.world?.let(mapper::toDto),
-            eras = eras.findByRegionCodeOrderByStartYear(region)
+            eras = eras.findByRegionCodeOrderByStartYearAscIdAsc(region)
                 .filter { it.startYear <= moment.endYear && it.endYear >= moment.startYear }
                 .map(mapper::toDto),
             people = people.findAliveBetween(region, moment.startYear, moment.endYear).map(mapper::toDto),
             lives = lives.findLivedBetween(region, moment.startYear, moment.endYear).map(mapper::toDto),
-            events = events.findByEraRegionCodeAndYearBetweenOrderByYear(region, moment.startYear, moment.endYear).map(mapper::toDto),
+            events = events.findByEraRegionCodeAndYearBetweenOrderByYearAscIdAsc(region, moment.startYear, moment.endYear).map(mapper::toDto),
             doors = doorsFrom(moment),
         )
     }
@@ -67,7 +67,7 @@ class MomentService(
         val cardCounts = cards.countByMoment().associate { it.momentId to it.count.toInt() }
         val casts = cards.findByTypeOrderByPosition(CardType.PERSON)
             .groupBy({ it.moment.id }, { mapper.toDto(it.person!!) })
-        val erasByRegion = eras.findAllByOrderByStartYear().groupBy { it.region.code }
+        val erasByRegion = eras.findAllByOrderByStartYearAscIdAsc().groupBy { it.region.code }
         return list.map { moment ->
             MomentSummaryDto(
                 id = moment.id,
@@ -108,7 +108,7 @@ class MomentService(
         )
     }
 
-    private fun published() = moments.findByStatusOrderByFocusYear(PUBLISHED)
+    private fun published() = moments.findByStatusOrderByFocusYearAscIdAsc(PUBLISHED)
 
     private fun find(id: String) = moments.findByIdAndStatus(id, PUBLISHED)
         ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown moment: $id")

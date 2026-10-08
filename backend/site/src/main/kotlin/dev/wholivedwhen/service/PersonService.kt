@@ -44,7 +44,7 @@ class PersonService(
         val ref = year?.takeIf { it in person.birthYear..end } ?: minOf(end, person.birthYear + PRIME_AGE)
 
         // The written moment of their place whose focus is closest to the year we look at.
-        val worldMoment = moments.findByStatusOrderByFocusYear(PUBLISHED)
+        val worldMoment = moments.findByStatusOrderByFocusYearAscIdAsc(PUBLISHED)
             .filter { it.region.code == region && it.world != null && it.startYear <= end && it.endYear >= person.birthYear }
             .minByOrNull { abs(it.focusYear - ref) }
 
@@ -58,8 +58,8 @@ class PersonService(
             worldMoment = worldMoment?.let { momentService.summarize(listOf(it)).single() },
             lifeline = lifeInTime(
                 person,
-                eras.findByRegionCodeOrderByStartYear(region),
-                events.findByEraRegionCodeAndYearBetweenOrderByYear(region, person.birthYear, end),
+                eras.findByRegionCodeOrderByStartYearAscIdAsc(region),
+                events.findByEraRegionCodeAndYearBetweenOrderByYearAscIdAsc(region, person.birthYear, end),
             ),
             connections = connectionsOf(person),
             aroundPeople = people.findAliveBetween(region, ref, ref).filter { it.slug != slug }.map(mapper::toDto),
@@ -78,7 +78,7 @@ class PersonService(
             ConnectionDto(mapper.toDto(connection.other(person)), connection.kind, connection.year, connection.text, connection.sourceUrl)
         }
         val linked = curated.map { it.person.slug }.toSet()
-        val shared = events.findDistinctByParticipantsPersonSlugOrderByYear(person.slug).flatMap { event ->
+        val shared = events.findDistinctByParticipantsPersonSlugOrderByYearAscIdAsc(person.slug).flatMap { event ->
             event.participants
                 .filter { it.person.slug != person.slug && it.person.slug !in linked }
                 .map { ConnectionDto(mapper.toDto(it.person), it.role, event.year, "${event.title}. ${event.description}", event.sourceUrl) }

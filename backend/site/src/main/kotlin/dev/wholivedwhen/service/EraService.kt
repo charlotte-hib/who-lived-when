@@ -20,7 +20,7 @@ class EraService(
     private val moments: MomentService,
     private val mapper: ApiMapper,
 ) {
-    fun list(): List<EraDto> = eras.findAllByOrderByStartYear().map(mapper::toDto)
+    fun list(): List<EraDto> = eras.findAllByOrderByStartYearAscIdAsc().map(mapper::toDto)
 
     fun detail(id: String): EraDetailDto {
         val era = eras.findById(id).orElseThrow {
@@ -31,7 +31,7 @@ class EraService(
             people = people.findAliveBetween(era.region.code, era.startYear, era.endYear)
                 .map(mapper::toDto)
                 .groupBy { it.domain },
-            events = events.findByEraIdOrderByYear(id).map(mapper::toDto),
+            events = events.findByEraIdOrderByYearAscIdAsc(id).map(mapper::toDto),
             moments = moments.overlapping(era.region.code, era.startYear, era.endYear),
         )
     }

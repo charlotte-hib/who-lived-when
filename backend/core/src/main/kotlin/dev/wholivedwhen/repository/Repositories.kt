@@ -16,6 +16,9 @@ import dev.wholivedwhen.domain.PublicationStatus
 import dev.wholivedwhen.domain.Region
 import dev.wholivedwhen.domain.StoryCard
 
+// Every list is sorted down to a unique key (an id where nothing else decides), so the API answers the same
+// whatever order the rows were stored in.
+
 /** How many cards a moment's story has. */
 data class CardCount(val momentId: String, val count: Long)
 
@@ -25,10 +28,10 @@ interface RegionRepository : JpaRepository<Region, String> {
 
 interface EraRepository : JpaRepository<Era, String> {
     @EntityGraph(attributePaths = ["region"])
-    fun findAllByOrderByStartYear(): List<Era>
+    fun findAllByOrderByStartYearAscIdAsc(): List<Era>
 
     @EntityGraph(attributePaths = ["region"])
-    fun findByRegionCodeOrderByStartYear(code: String): List<Era>
+    fun findByRegionCodeOrderByStartYearAscIdAsc(code: String): List<Era>
 }
 
 interface PersonRepository : JpaRepository<Person, String> {
@@ -38,7 +41,7 @@ interface PersonRepository : JpaRepository<Person, String> {
         select p from Person p
         where p.region.code = :region
           and p.birthYear <= :end and (p.deathYear is null or p.deathYear >= :start)
-        order by p.birthYear
+        order by p.birthYear, p.id
         """
     )
     fun findAliveBetween(region: String, start: Int, end: Int): List<Person>
@@ -50,6 +53,7 @@ interface PersonRepository : JpaRepository<Person, String> {
         select p from Person p
         where p.region.code <> :region
           and p.birthYear <= :year and (p.deathYear is null or p.deathYear >= :year)
+        order by p.birthYear, p.id
         """
     )
     fun findAliveElsewhere(region: String, year: Int): List<Person>
@@ -68,7 +72,7 @@ interface LifeRepository : JpaRepository<Life, String> {
         """
         select l from Life l
         where l.era.region.code = :region and l.startYear <= :end and l.endYear >= :start
-        order by l.startYear
+        order by l.startYear, l.id
         """
     )
     fun findLivedBetween(region: String, start: Int, end: Int): List<Life>
@@ -76,18 +80,23 @@ interface LifeRepository : JpaRepository<Life, String> {
 
 interface EventRepository : JpaRepository<Event, String> {
     @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
-    fun findByEraIdOrderByYear(eraId: String): List<Event>
+    fun findByEraIdOrderByYearAscIdAsc(eraId: String): List<Event>
 
     @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
-    fun findByEraRegionCodeAndYearBetweenOrderByYear(code: String, start: Int, end: Int): List<Event>
+    fun findByEraRegionCodeAndYearBetweenOrderByYearAscIdAsc(code: String, start: Int, end: Int): List<Event>
 
     @EntityGraph(attributePaths = ["participants", "participants.person", "participants.person.region"])
-    fun findDistinctByParticipantsPersonSlugOrderByYear(slug: String): List<Event>
+    fun findDistinctByParticipantsPersonSlugOrderByYearAscIdAsc(slug: String): List<Event>
 }
 
 interface ConnectionRepository : JpaRepository<Connection, Long> {
     @EntityGraph(attributePaths = ["first", "first.region", "second", "second.region"])
-    @Query("select c from Connection c where c.first.slug = :slug or c.second.slug = :slug order by c.year")
+    @Query(
+        """
+        select c from Connection c where c.first.slug = :slug or c.second.slug = :slug
+        order by c.year, c.first.id, c.second.id, c.kind
+        """
+    )
     fun findInvolving(slug: String): List<Connection>
 }
 
@@ -96,7 +105,7 @@ interface MomentRepository : JpaRepository<Moment, String> {
     override fun findById(id: String): Optional<Moment>
 
     @EntityGraph(attributePaths = ["region"])
-    fun findByStatusOrderByFocusYear(status: PublicationStatus): List<Moment>
+    fun findByStatusOrderByFocusYearAscIdAsc(status: PublicationStatus): List<Moment>
 
     @EntityGraph(attributePaths = ["region"])
     fun findByIdAndStatus(id: String, status: PublicationStatus): Moment?

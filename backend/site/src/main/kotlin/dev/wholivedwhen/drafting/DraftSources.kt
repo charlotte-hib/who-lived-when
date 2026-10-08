@@ -26,7 +26,7 @@ class DraftSources(
         val region = moment.region.code
         val (start, end) = moment.startYear to moment.endYear
 
-        val eraSources = eras.findByRegionCodeOrderByStartYear(region)
+        val eraSources = eras.findByRegionCodeOrderByStartYearAscIdAsc(region)
             .filter { it.startYear <= end && it.endYear >= start }
             .map { Source("era:${it.id}", it.label, "${it.label}: who governed ${it.region.name} from ${it.startYear} to ${it.endYear}.", null) }
 
@@ -39,7 +39,7 @@ class DraftSources(
             Source("life:${it.id}", it.label, "${it.label}, ${it.startYear}–${it.endYear}. ${it.description}", null)
         }
 
-        val eventSources = events.findByEraRegionCodeAndYearBetweenOrderByYear(region, start, end).map { event ->
+        val eventSources = events.findByEraRegionCodeAndYearBetweenOrderByYearAscIdAsc(region, start, end).map { event ->
             val who = event.participants.joinToString { "${it.person.name} (${it.role})" }
             Source("event:${event.id}", event.title, "In ${event.year}: ${event.description}${if (who.isNotEmpty()) " Participants: $who." else ""}", event.sourceUrl)
         }
