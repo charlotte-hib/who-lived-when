@@ -36,7 +36,7 @@ docker compose up --build
 
 ## End-to-end tests
 
-A few Playwright tests (`e2e/`) walk the main journeys in a desktop browser and on a phone with a touchscreen: playing a story by tapping its cards, searching for someone, and opening who was at a documented event. They run against a site that is already up (`BASE_URL`, http://localhost:3000 by default), and the story tests read the cards from its backend (`API_URL`, http://localhost:8080 by default), which the site does not forward. Start the app first, in Docker or with the two commands above:
+A few Playwright tests (`e2e/`) walk the main journeys in a desktop browser and on a phone with a touchscreen: playing a story by tapping its cards, searching for someone, and opening who was at a documented event; two more check the rate limit per visitor. They run against a site that is already up (`BASE_URL`, http://localhost:3000 by default), and the story tests read the cards from its backend (`API_URL`, http://localhost:8080 by default), which the site does not forward. Start the app first, in Docker or with the two commands above:
 
 ```sh
 docker compose -f docker-compose.yml -f e2e/compose.yaml up --build --detach --wait   # optional: skips Wikipedia
