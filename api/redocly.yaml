@@ -1,0 +1,6 @@
+# Redocly CLI: npx @redocly/cli lint api/openapi.yaml (picks up this file from the spec's folder or the root).
+extends:
+  - recommended
+rules:
+  # The list endpoints (moments, regions, eras) take no input, so no request of theirs is a client error.
+  operation-4xx-response: off
