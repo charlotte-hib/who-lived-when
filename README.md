@@ -36,7 +36,7 @@ docker compose up --build
 
 ## End-to-end tests
 
-A few Playwright tests (`e2e/`) walk the main journeys in a desktop browser and on a phone with a touchscreen: playing a story by tapping its cards, searching for someone, and opening who was at a documented event. They run against a site that is already up (`BASE_URL`, http://localhost:3000 by default), so start the app first, in Docker or with the two commands above:
+A few Playwright tests (`e2e/`) walk the main journeys in a desktop browser and on a phone with a touchscreen: playing a story by tapping its cards, searching for someone, and opening who was at a documented event. They run against a site that is already up (`BASE_URL`, http://localhost:3000 by default), and the story tests read the cards from its backend (`API_URL`, http://localhost:8080 by default), which the site does not forward. Start the app first, in Docker or with the two commands above:
 
 ```sh
 docker compose -f docker-compose.yml -f e2e/compose.yaml up --build --detach --wait   # optional: skips Wikipedia
@@ -76,6 +76,8 @@ export ANTHROPIC_API_KEY=...
 `StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `seed/moments.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
 
 ## API
+
+The backend's API. Through the site, only the paths the browser calls are forwarded (`/api/search`, `/api/eras/{id}`, `/api/years/{year}/people` and `POST /api/events`); the frontend's server fetches the rest while rendering.
 
 - `GET /api/moments` lists published moments, with who governed, the story length and its cast.
 - `GET /api/moments/{id}` returns a moment: the world around it, its eras, people, everyday lives, events and doors.

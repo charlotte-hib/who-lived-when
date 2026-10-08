@@ -199,7 +199,7 @@ jobs:
           for image in "$RUNNER_TEMP"/images/*/image.tar; do docker load --input "$image"; done
           $COMPOSE up --no-build --pull never --detach --wait
       - name: Wait for the backend behind the frontend
-        run: timeout 180 sh -c 'until curl -fsS -o /dev/null http://localhost:3000/api/moments; do sleep 2; done'
+        run: timeout 180 sh -c 'until curl -fsS -o /dev/null "http://localhost:3000/api/search?q=a"; do sleep 2; done'
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
