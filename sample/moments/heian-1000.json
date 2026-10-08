@@ -1,0 +1,22 @@
+{
+  "id": "heian-1000",
+  "region": "JP",
+  "place": "Heian-kyō",
+  "period": "c. 1000",
+  "start": 995,
+  "end": 1015,
+  "focus": 1005,
+  "status": "PUBLISHED",
+  "hook": "Court women write The Tale of Genji and The Pillow Book.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Genji_emaki_azumaya.jpg/1280px-Genji_emaki_azumaya.jpg",
+    "credit": "Genji Monogatari Emaki, 12th-century handscroll",
+    "source": "https://commons.wikimedia.org/wiki/File:Genji_emaki_azumaya.jpg"
+  },
+  "world": {
+    "governs": "The emperor reigns, but the Fujiwara family rules as regents.",
+    "everyday": "Most people farm rice far from the capital and pay their taxes in kind.",
+    "arts": "Court women write in kana: The Tale of Genji, The Pillow Book.",
+    "meanwhile": "In China, the Song dynasty is in its first decades. In France, the Capetian kings are new."
+  }
+}

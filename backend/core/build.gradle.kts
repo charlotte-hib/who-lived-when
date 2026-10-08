@@ -21,6 +21,7 @@ dependencies {
 	// Entities and repositories are part of core's API: every app that uses them needs JPA.
 	api("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
+	implementation("tools.jackson.module:jackson-module-kotlin")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("com.h2database:h2")
@@ -41,4 +42,12 @@ allOpen {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+// SampleReleaseTests compile the repository's sample/ release.
+val sample = rootProject.file("../sample")
+
+tasks.test {
+	inputs.dir(sample).withPropertyName("sample").withPathSensitivity(PathSensitivity.RELATIVE)
+	systemProperty("sample.dir", sample.path)
 }

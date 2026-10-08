@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.post
 import kotlin.test.assertEquals
 import dev.wholivedwhen.metrics.VisitorEvents
 
-/** Runs against the seed data in `resources/seed`: paris-1870s has a 7-card story, edo-1830s has none. */
+/** Runs against the release in the repository's `sample/`: paris-1870s has a 7-card story, edo-1830s has none. */
 @SpringBootTest(properties = ["app.wikipedia.enrich=false"])
 @AutoConfigureMockMvc
 class EventApiTests(@Autowired private val mockMvc: MockMvc, @Autowired private val registry: MeterRegistry) {

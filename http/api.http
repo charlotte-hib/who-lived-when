@@ -1,4 +1,4 @@
-# End-to-end smoke tests for the public API, against the seed data in backend/site/src/main/resources/seed.
+# End-to-end smoke tests for the public API, against the release in sample/.
 # Start the backend with Wikipedia enrichment off (--app.wikipedia.enrich=false), then run a request
 # from IntelliJ with the "local" environment, or all of them with the HTTP Client CLI:
 #   ijhttp --env-file http/http-client.env.json --env local http/api.http

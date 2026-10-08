@@ -12,7 +12,11 @@
 services:
   backend:
     image: ${BACKEND_IMAGE:-who-lived-when-backend}
-    build: ./backend
+    build:
+      context: ./backend
+      # The release the image serves (backend/Dockerfile).
+      additional_contexts:
+        sample: ./sample
     restart: unless-stopped
     mem_limit: 768m
 

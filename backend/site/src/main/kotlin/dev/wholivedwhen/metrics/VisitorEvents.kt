@@ -50,7 +50,7 @@ class VisitorEvents(private val registry: MeterRegistry, private val momentServi
     private var storyCards: Map<String, Int> = emptyMap()
 
     /**
-     * Registers every counter at zero once the seed data is in. Prometheus then sees each one before its first
+     * Registers every counter at zero once the release is loaded. Prometheus then sees each one before its first
      * event, so `increase()` counts that event too, and the dashboards show zeros rather than "no data".
      */
     @EventListener(ApplicationReadyEvent::class)

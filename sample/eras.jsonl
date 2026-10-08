@@ -1,0 +1,56 @@
+{"id":"cn-five-dynasties-and-ten-kingdoms","region":"CN","label":"Five Dynasties and Ten Kingdoms","start":907,"end":960}
+{"id":"cn-han-dynasty","region":"CN","label":"Han dynasty","start":-206,"end":220}
+{"id":"cn-jin-dynasty","region":"CN","label":"Jin dynasty","start":280,"end":420}
+{"id":"cn-ming-dynasty","region":"CN","label":"Ming dynasty","start":1368,"end":1644}
+{"id":"cn-northern-and-southern-dynasties","region":"CN","label":"Northern and Southern dynasties","start":420,"end":589}
+{"id":"cn-people-s-republic-of-china","region":"CN","label":"People's Republic of China","start":1949}
+{"id":"cn-qin-dynasty","region":"CN","label":"Qin dynasty","start":-221,"end":-206}
+{"id":"cn-qing-dynasty","region":"CN","label":"Qing dynasty","start":1644,"end":1912}
+{"id":"cn-republic-of-china","region":"CN","label":"Republic of China","start":1912,"end":1949}
+{"id":"cn-shang-dynasty","region":"CN","label":"Shang dynasty","start":-1600,"end":-1046}
+{"id":"cn-song-dynasty","region":"CN","label":"Song dynasty","start":960,"end":1279}
+{"id":"cn-spring-and-autumn-period","region":"CN","label":"Spring and Autumn period","start":-771,"end":-475}
+{"id":"cn-sui-dynasty","region":"CN","label":"Sui dynasty","start":589,"end":618}
+{"id":"cn-tang-dynasty","region":"CN","label":"Tang dynasty","start":618,"end":907}
+{"id":"cn-three-kingdoms","region":"CN","label":"Three Kingdoms","start":220,"end":280}
+{"id":"cn-warring-states-period","region":"CN","label":"Warring States period","start":-475,"end":-221}
+{"id":"cn-western-zhou","region":"CN","label":"Western Zhou","start":-1046,"end":-771}
+{"id":"cn-yuan-dynasty","region":"CN","label":"Yuan dynasty","start":1279,"end":1368}
+{"id":"fr-bourbon-restoration","region":"FR","label":"Bourbon Restoration","start":1814,"end":1830}
+{"id":"fr-celtic-gaul","region":"FR","label":"Celtic Gaul","start":-500,"end":-51}
+{"id":"fr-fifth-republic","region":"FR","label":"Fifth Republic","start":1958}
+{"id":"fr-first-empire","region":"FR","label":"First Empire","start":1804,"end":1814}
+{"id":"fr-first-republic","region":"FR","label":"First Republic","start":1792,"end":1804}
+{"id":"fr-fourth-republic","region":"FR","label":"Fourth Republic","start":1946,"end":1958}
+{"id":"fr-frankish-kingdoms","region":"FR","label":"Frankish kingdoms","start":486,"end":843}
+{"id":"fr-july-monarchy","region":"FR","label":"July Monarchy","start":1830,"end":1848}
+{"id":"fr-kingdom-of-france","region":"FR","label":"Kingdom of France","start":987,"end":1792}
+{"id":"fr-provisional-government","region":"FR","label":"Provisional Government","start":1944,"end":1946}
+{"id":"fr-roman-gaul","region":"FR","label":"Roman Gaul","start":-51,"end":486}
+{"id":"fr-second-empire","region":"FR","label":"Second Empire","start":1852,"end":1870}
+{"id":"fr-second-republic","region":"FR","label":"Second Republic","start":1848,"end":1852}
+{"id":"fr-third-republic","region":"FR","label":"Third Republic","start":1870,"end":1940}
+{"id":"fr-vichy-regime","region":"FR","label":"Vichy regime","governedBy":"Vichy regime, under German occupation","start":1940,"end":1944}
+{"id":"fr-west-francia","region":"FR","label":"West Francia","start":843,"end":987}
+{"id":"gb-anglo-saxon-kingdoms","region":"GB","label":"Anglo-Saxon kingdoms","start":410,"end":927}
+{"id":"gb-iron-age-britain","region":"GB","label":"Iron Age Britain","start":-800,"end":43}
+{"id":"gb-kingdom-of-england","region":"GB","label":"Kingdom of England","start":927,"end":1707}
+{"id":"gb-kingdom-of-great-britain","region":"GB","label":"Kingdom of Great Britain","start":1707,"end":1801}
+{"id":"gb-roman-britain","region":"GB","label":"Roman Britain","start":43,"end":410}
+{"id":"gb-united-kingdom","region":"GB","label":"United Kingdom","start":1801}
+{"id":"jp-asuka-period","region":"JP","label":"Asuka period","start":538,"end":710}
+{"id":"jp-azuchi-momoyama-period","region":"JP","label":"Azuchi–Momoyama period","start":1573,"end":1603}
+{"id":"jp-edo-period","region":"JP","label":"Edo period","governedBy":"Tokugawa shogunate","start":1603,"end":1868}
+{"id":"jp-heian-period","region":"JP","label":"Heian period","start":794,"end":1185}
+{"id":"jp-heisei-era","region":"JP","label":"Heisei era","start":1989,"end":2019}
+{"id":"jp-jomon-period","region":"JP","label":"Jōmon period","start":-3000,"end":-300}
+{"id":"jp-kamakura-shogunate","region":"JP","label":"Kamakura shogunate","start":1185,"end":1333}
+{"id":"jp-kenmu-restoration","region":"JP","label":"Kenmu Restoration","start":1333,"end":1336}
+{"id":"jp-kofun-period","region":"JP","label":"Kofun period","start":250,"end":538}
+{"id":"jp-meiji-era","region":"JP","label":"Meiji era","governedBy":"Empire of Japan","start":1868,"end":1912}
+{"id":"jp-muromachi-period","region":"JP","label":"Muromachi period","governedBy":"Ashikaga shogunate","start":1336,"end":1573}
+{"id":"jp-nara-period","region":"JP","label":"Nara period","start":710,"end":794}
+{"id":"jp-reiwa-era","region":"JP","label":"Reiwa era","start":2019}
+{"id":"jp-showa-era","region":"JP","label":"Shōwa era","start":1926,"end":1989}
+{"id":"jp-taisho-era","region":"JP","label":"Taishō era","governedBy":"Empire of Japan","start":1912,"end":1926}
+{"id":"jp-yayoi-period","region":"JP","label":"Yayoi period","start":-300,"end":250}

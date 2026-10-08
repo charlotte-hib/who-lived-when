@@ -53,13 +53,15 @@ Outside CI they drive the installed Google Chrome; CI installs Playwright's Chro
 
 - **Moments are the way in.** A `Moment` is a place over a few years with a hook, a public-domain painting, "the world around" it (who governs, everyday life, arts and ideas, meanwhile elsewhere), a story of ordered `StoryCard`s (scene, person, everyday life, documented event) and curated `Door`s to other moments ("Meanwhile, elsewhere", "Follow Zola and Clemenceau"). Moments without a written story get doors to the nearest moments, here and elsewhere.
 - **People live in their world.** A person's page shows the world around them and "their life in their time": who governed when they were born, each change of regime and each documented event, with their age. It is computed from dated records (`LifeInTime.kt`), never written by hand.
-- **Facts, computed views and prose are separate.** Dates, places and events are curated data (`backend/site/src/main/resources/seed/*.json`, to be replaced by a Wikidata import). Bios and portraits come from the Wikipedia REST API (`WikipediaJob`: one virtual thread per lookup, at most two at a time, retrying when rate limited). Prose is drafted by Claude, then reviewed (below).
+- **Facts, computed views and prose are separate.** Dates, places and events are curated data (`sample/`, to be replaced by a Wikidata import). Bios and portraits come from the Wikipedia REST API (`WikipediaJob`: one virtual thread per lookup, at most two at a time, retrying when rate limited). Prose is drafted by Claude, then reviewed (below).
 
 ### Backend (`backend/`)
 
-Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API tests that run against the seed data.
+Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API tests that run against `sample/`.
 
-Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers), and `site` the public API, the only project in the production image.
+Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers) and the release compiler, and `site` the public API, the only project in the production image.
+
+The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir`, checks it and compiles it into the database (`ReleaseReader`, `ReleaseCompiler`, `ReleaseLoader`). `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
 
 ### Frontend (`frontend/`)
 
@@ -77,7 +79,7 @@ export ANTHROPIC_API_KEY=...
 ./gradlew bootRun --args='--app.drafting.moment=edo-1830s --server.port=0'
 ```
 
-`StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `seed/moments.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
+`StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `sample/moments/<moment>.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
 
 ## API
 
@@ -95,7 +97,7 @@ The backend's API. Through the site, only the paths the browser calls are forwar
 
 ### API tests
 
-`http/api.http` is a short end-to-end smoke suite: a few requests against a running backend, each with assertions on the status, the content type and the seed data it returns. Start the backend without Wikipedia enrichment (`./gradlew bootRun --args='--app.wikipedia.enrich=false'`), then either open the file in IntelliJ and run the requests with the `local` environment, or run them all with the [HTTP Client CLI](https://www.jetbrains.com/help/idea/http-client-cli.html):
+`http/api.http` is a short end-to-end smoke suite: a few requests against a running backend, each with assertions on the status, the content type and the data from `sample/` it returns. Start the backend without Wikipedia enrichment (`./gradlew bootRun --args='--app.wikipedia.enrich=false'`), then either open the file in IntelliJ and run the requests with the `local` environment, or run them all with the [HTTP Client CLI](https://www.jetbrains.com/help/idea/http-client-cli.html):
 
 ```sh
 ijhttp --env-file http/http-client.env.json --env local http/api.http

@@ -14,8 +14,12 @@ FROM eclipse-temurin:25-jre
 RUN useradd --system --home /app app
 WORKDIR /app
 COPY --from=build /app.jar app.jar
+# The release the site serves: the repository's sample/, passed as the build context named "sample"
+# (docker-compose.yml, and the images job in CI).
+COPY --from=sample . release/
 USER app
 ENV SPRING_PROFILES_ACTIVE=prod \
+    APP_RELEASE_DIR=/app/release \
     JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
