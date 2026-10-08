@@ -1,0 +1,23 @@
+{"id":"a-coal-miner-in-south-wales","region":"GB","label":"A coal miner in South Wales","description":"Digs the steam coal that fuels ships around the world.","start":1850,"end":1950}
+{"id":"a-factory-worker-in-shenzhen","region":"CN","label":"A factory worker in Shenzhen","description":"Moves from the countryside to assemble goods for export.","start":1985,"end":2015}
+{"id":"a-farmhand-in-the-loire-valley","region":"FR","label":"A farmhand in the Loire Valley","description":"Works land owned by others, far from the Paris salons.","start":1870,"end":1890}
+{"id":"a-fisherman-on-the-seto-inland-sea","region":"JP","label":"A fisherman on the Seto Inland Sea","description":"Fishes waters where sea lords and pirates control the routes.","start":1336,"end":1573}
+{"id":"a-jomon-fisher-and-gatherer","region":"JP","label":"A Jōmon fisher and gatherer","description":"Fishes, gathers and makes the cord-marked pottery that gives the period its name.","start":-3000,"end":-300}
+{"id":"a-legionary-on-hadrian-s-wall","region":"GB","label":"A legionary on Hadrian's Wall","description":"Guards the northern frontier of Roman Britain.","start":122,"end":400}
+{"id":"a-merchant-s-apprentice-in-osaka","region":"JP","label":"A merchant's apprentice in Osaka","description":"Works for a rice or cloth merchant in the city called the nation's kitchen.","start":1700,"end":1800}
+{"id":"a-mill-girl-in-lancashire","region":"GB","label":"A mill girl in Lancashire","description":"Works long shifts at a cotton mill.","start":1820,"end":1880}
+{"id":"a-peasant-in-the-hundred-years-war","region":"FR","label":"A peasant in the Hundred Years' War","description":"Lives through decades of war, raids and the Black Death.","start":1337,"end":1453}
+{"id":"a-potter-in-roman-gaul","region":"FR","label":"A potter in Roman Gaul","description":"Turns red-gloss tableware for markets across the Roman Empire.","start":-50,"end":400}
+{"id":"a-rice-farmer-in-a-yayoi-village","region":"JP","label":"A rice farmer in a Yayoi village","description":"Plants wet rice, newly arrived from the continent, and works bronze and iron.","start":-300,"end":250}
+{"id":"a-rice-farmer-in-edo-japan","region":"JP","label":"A rice farmer in Edo Japan","description":"Pays a large share of the harvest in rice tax to the local lord.","start":1603,"end":1868}
+{"id":"a-rice-farmer-in-heian-japan","region":"JP","label":"A rice farmer in Heian Japan","description":"Grows rice and pays tax in kind, far from the court at Heian-kyō.","start":794,"end":1185}
+{"id":"a-salaryman-in-tokyo","region":"JP","label":"A salaryman in Tokyo","description":"Commutes into Tokyo for long days at one company, often for a whole career.","start":1955,"end":1990}
+{"id":"a-serf-on-a-french-manor","region":"FR","label":"A serf on a French manor","description":"Owes the lord labour on his land and a share of every harvest.","start":1000,"end":1300}
+{"id":"a-servant-at-versailles","region":"FR","label":"A servant at Versailles","description":"One of thousands of servants who keep the court running.","start":1682,"end":1789}
+{"id":"a-silk-weaver-in-chang-an","region":"CN","label":"A silk weaver in Chang'an","description":"Weaves silk for markets that reach Central Asia along the Silk Road.","start":-206,"end":220}
+{"id":"a-silk-weaver-in-lyon","region":"FR","label":"A silk weaver in Lyon","description":"Works a Jacquard loom at home. The weavers, the canuts, revolt in 1831 and 1834.","start":1800,"end":1870}
+{"id":"a-stonemason-at-chartres","region":"FR","label":"A stonemason at Chartres","description":"Cuts and sets stone for the cathedral rebuilt after the fire of 1194.","start":1194,"end":1250}
+{"id":"a-tea-merchant-in-hangzhou","region":"CN","label":"A tea merchant in Hangzhou","description":"Trades tea in the Southern Song capital, one of the largest cities in the world.","start":1127,"end":1279}
+{"id":"a-washerwoman-on-the-seine","region":"FR","label":"A washerwoman on the Seine","description":"Washes the laundry of Paris on boats moored along the river.","start":1850,"end":1900}
+{"id":"a-worker-at-renault-s-billancourt-plant","region":"FR","label":"A worker at Renault's Billancourt plant","description":"Builds cars at the huge factory on the Seine, west of Paris.","start":1920,"end":1980}
+{"id":"a-worker-at-the-tomioka-silk-mill","region":"JP","label":"A worker at the Tomioka silk mill","description":"Reels silk at Japan's first modern silk mill, opened by the government in 1872.","start":1872,"end":1920}

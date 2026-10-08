@@ -1,0 +1,22 @@
+{
+  "id": "versailles-1680s",
+  "region": "FR",
+  "place": "Versailles",
+  "period": "1680s",
+  "start": 1682,
+  "end": 1700,
+  "focus": 1690,
+  "status": "PUBLISHED",
+  "hook": "The king moves his court to Versailles.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5f/Louis_XIV_of_France.jpg/1280px-Louis_XIV_of_France.jpg",
+    "credit": "Hyacinthe Rigaud, Louis XIV, 1701",
+    "source": "https://commons.wikimedia.org/wiki/File:Louis_XIV_of_France.jpg"
+  },
+  "world": {
+    "governs": "Louis XIV rules alone, and in 1682 moves the court and government to Versailles.",
+    "everyday": "Most people are peasants paying taxes, tithes and dues. In 1685 the Protestant faith is banned.",
+    "arts": "Lully's operas and Le Nôtre's gardens set the taste of Europe.",
+    "meanwhile": "Edo-period Japan is at peace, and Bashō is writing his haiku."
+  }
+}

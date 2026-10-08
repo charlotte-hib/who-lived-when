@@ -1,0 +1,22 @@
+{
+  "id": "london-1600",
+  "region": "GB",
+  "place": "London",
+  "period": "c. 1600",
+  "start": 1588,
+  "end": 1603,
+  "focus": 1600,
+  "status": "PUBLISHED",
+  "hook": "Shakespeare's theatre and an ageing queen.",
+  "art": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Elizabeth_I_%28Armada_Portrait%29.jpg",
+    "credit": "Armada Portrait of Elizabeth I, c. 1588",
+    "source": "https://commons.wikimedia.org/wiki/File:Elizabeth_I_(Armada_Portrait).jpg"
+  },
+  "world": {
+    "governs": "Elizabeth I is old and has no heir. Protestant England is at war with Spain.",
+    "everyday": "London is growing fast, crowded, and often hit by plague.",
+    "arts": "Shakespeare's company opens the Globe on Bankside in 1599.",
+    "meanwhile": "In Japan, Tokugawa Ieyasu wins at Sekigahara in 1600."
+  }
+}

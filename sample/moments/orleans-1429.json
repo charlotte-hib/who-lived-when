@@ -1,0 +1,22 @@
+{
+  "id": "orleans-1429",
+  "region": "FR",
+  "place": "Orléans",
+  "period": "1429",
+  "start": 1425,
+  "end": 1431,
+  "focus": 1429,
+  "status": "PUBLISHED",
+  "hook": "A teenage girl lifts a siege.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c3/Joan_of_Arc_miniature_graded.jpg/1280px-Joan_of_Arc_miniature_graded.jpg",
+    "credit": "Joan of Arc, 15th-century miniature",
+    "source": "https://commons.wikimedia.org/wiki/File:Joan_of_Arc_miniature_graded.jpg"
+  },
+  "world": {
+    "governs": "France is split by the Hundred Years' War. The English and their Burgundian allies hold the north.",
+    "everyday": "Villages have been raided for decades, and the Black Death keeps returning.",
+    "arts": "Books are still copied by hand. Christine de Pizan writes from a convent.",
+    "meanwhile": "In China, the Ming treasure fleets are about to make their last voyage."
+  }
+}

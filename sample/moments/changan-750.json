@@ -1,0 +1,22 @@
+{
+  "id": "changan-750",
+  "region": "CN",
+  "place": "Chang'an",
+  "period": "c. 750",
+  "start": 740,
+  "end": 760,
+  "focus": 750,
+  "status": "PUBLISHED",
+  "hook": "The Tang capital, its poets and the Silk Road.",
+  "art": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/LiBai.jpg",
+    "credit": "Liang Kai, Li Bai Strolling, 13th century",
+    "source": "https://commons.wikimedia.org/wiki/File:LiBai.jpg"
+  },
+  "world": {
+    "governs": "The Tang dynasty is at its height under Emperor Xuanzong, until the An Lushan rebellion of 755.",
+    "everyday": "Chang'an is one of the largest cities in the world, its markets full of goods from the Silk Road.",
+    "arts": "Li Bai and Du Fu write the poems that define Chinese poetry.",
+    "meanwhile": "In Japan, the Great Buddha of Nara is dedicated in 752."
+  }
+}

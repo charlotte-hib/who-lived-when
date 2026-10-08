@@ -52,7 +52,16 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
+// The release the tests and bootRun load: the repository's sample/. The Docker image has its own copy.
+val sample = rootProject.file("../sample")
+
+tasks.test {
+	inputs.dir(sample).withPropertyName("sample").withPathSensitivity(PathSensitivity.RELATIVE)
+	systemProperty("app.release.dir", sample.path)
+}
+
 // Run from backend/, as before the split, so story drafts still land in backend/drafts.
 tasks.bootRun {
 	workingDir = rootProject.projectDir
+	systemProperty("app.release.dir", sample.path)
 }

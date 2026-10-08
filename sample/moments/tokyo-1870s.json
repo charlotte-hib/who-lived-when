@@ -1,0 +1,86 @@
+{
+  "id": "tokyo-1870s",
+  "region": "JP",
+  "place": "Tokyo",
+  "period": "1870s",
+  "start": 1868,
+  "end": 1880,
+  "focus": 1875,
+  "status": "PUBLISHED",
+  "hook": "The shogun is gone, the samurai lose their swords, and the first trains run.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Kobayashi_Kiyochika_%281876%29_T%C5%8Dky%C5%8D_Shin-%C5%8Chashi_uch%C5%AB.jpg/1280px-Kobayashi_Kiyochika_%281876%29_T%C5%8Dky%C5%8D_Shin-%C5%8Chashi_uch%C5%AB.jpg",
+    "credit": "Kobayashi Kiyochika, Shin-Ōhashi Bridge in the Rain, Tokyo, 1876",
+    "source": "https://commons.wikimedia.org/wiki/File:Kobayashi_Kiyochika_(1876)_T%C5%8Dky%C5%8D_Shin-%C5%8Chashi_uch%C5%AB.jpg"
+  },
+  "world": {
+    "governs": "Former samurai rule in the emperor's name. The old feudal domains are abolished in 1871.",
+    "everyday": "Most people still farm. From 1873 the land tax is paid in money instead of rice.",
+    "arts": "Woodblock prints show trains, gas lamps and brick streets, and Western painting is taught for the first time.",
+    "meanwhile": "France has just lost a war and become a republic again, and the United States marks its centennial in 1876."
+  },
+  "cards": [
+    {
+      "type": "SCENE",
+      "kicker": "Setting the scene · Tokyo, 1870s",
+      "title": "Edo becomes Tokyo",
+      "text": "In 1868 the shogunate fell. The teenage emperor moved into Edo Castle, and the city was renamed Tokyo, the eastern capital."
+    },
+    {
+      "type": "SCENE",
+      "kicker": "Setting the scene · a country in a hurry",
+      "title": "Catching up with the West",
+      "text": "Railways, telegraphs, a new army and new schools arrive within a few years. In 1876 the samurai lose their stipends and the right to carry swords."
+    },
+    {
+      "type": "PERSON",
+      "text": "Emperor since he was fourteen, he becomes the face of the new Japan, photographed in Western uniform.",
+      "year": 1875,
+      "person": "emperor-meiji"
+    },
+    {
+      "type": "PERSON",
+      "text": "A farmer's son adopted into a samurai family, he sailed to London as a young man to study. He will later write Japan's first constitution.",
+      "year": 1875,
+      "person": "ito-hirobumi"
+    },
+    {
+      "type": "LIFE",
+      "year": 1875,
+      "life": "a-worker-at-the-tomioka-silk-mill"
+    },
+    {
+      "type": "EVENT",
+      "event": "first-railway",
+      "art": {
+        "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/Steam-Locomotive-on-the-coast-in-Yokohama-1874-Utagawa-Hiroshige-III.png/1280px-Steam-Locomotive-on-the-coast-in-Yokohama-1874-Utagawa-Hiroshige-III.png",
+        "credit": "Utagawa Hiroshige III, steam train at Yokohama, 1874",
+        "source": "https://commons.wikimedia.org/wiki/File:Steam-Locomotive-on-the-coast-in-Yokohama-1874-Utagawa-Hiroshige-III.png"
+      }
+    },
+    {
+      "type": "EVENT",
+      "event": "satsuma-rebellion"
+    }
+  ],
+  "doors": [
+    {
+      "to": "paris-1870s",
+      "kind": "Meanwhile, elsewhere",
+      "text": "A republic born out of defeat"
+    },
+    {
+      "to": "kyoto-1590s",
+      "kind": "Three centuries earlier",
+      "text": "How the Tokugawa came to power",
+      "faces": [
+        "tokugawa-ieyasu"
+      ]
+    },
+    {
+      "to": "paris-1890s",
+      "kind": "Later, in France",
+      "text": "The Dreyfus affair"
+    }
+  ]
+}

@@ -86,6 +86,8 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.service }}
+          # The release the backend image serves (backend/Dockerfile). The frontend's build does not use it.
+          build-contexts: sample=sample
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # The only build of this image in the run: the test jobs load this file and main pushes it.
@@ -151,7 +153,7 @@ jobs:
       - name: Load the backend image
         run: docker load --input "$RUNNER_TEMP/image.tar"
       - name: Start the backend
-        # Without Wikipedia enrichment the data is exactly the seed, and the job does not depend on Wikipedia.
+        # Without Wikipedia enrichment the data is exactly sample/, and the job does not depend on Wikipedia.
         run: |
           docker run --detach --name backend --publish 8080:8080 \
             --env APP_WIKIPEDIA_ENRICH=false --env SPRING_PROFILES_ACTIVE=prod "$BACKEND_IMAGE"

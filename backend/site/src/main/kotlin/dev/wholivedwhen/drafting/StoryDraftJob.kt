@@ -35,7 +35,7 @@ data class DraftForReview(
  * Drafts one moment's story with Claude, then exits: `./gradlew bootRun --args='--app.drafting.moment=edo-1830s'`.
  *
  * Nothing is published. The draft is written to `drafts/<moment>.json` with the validator's findings, for a
- * curator to review, correct and copy into the seed data. Needs an Anthropic API key in the environment.
+ * curator to review, correct and copy into `sample/`. Needs an Anthropic API key in the environment.
  */
 @Component
 @Order(3)

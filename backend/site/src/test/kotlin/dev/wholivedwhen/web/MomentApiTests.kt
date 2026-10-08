@@ -7,7 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 
-/** Runs against the seed data in `resources/seed`. */
+/** Runs against the release in the repository's `sample/`. */
 @SpringBootTest(properties = ["app.wikipedia.enrich=false"])
 @AutoConfigureMockMvc
 class MomentApiTests(@Autowired private val mockMvc: MockMvc) {

@@ -1,0 +1,22 @@
+{
+  "id": "edo-1830s",
+  "region": "JP",
+  "place": "Edo",
+  "period": "1830s",
+  "start": 1825,
+  "end": 1849,
+  "focus": 1831,
+  "status": "PUBLISHED",
+  "hook": "Hokusai's Great Wave, in a city of a million.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century.jpg/1280px-Tsunami_by_hokusai_19th_century.jpg",
+    "credit": "Katsushika Hokusai, The Great Wave off Kanagawa, c. 1831",
+    "source": "https://commons.wikimedia.org/wiki/File:Tsunami_by_hokusai_19th_century.jpg"
+  },
+  "world": {
+    "governs": "The Tokugawa shoguns still rule a country closed to most foreigners.",
+    "everyday": "Edo is one of the largest cities in the world, and the Tenpō famine strikes in the 1830s.",
+    "arts": "Hokusai's Thirty-six Views of Mount Fuji and Hiroshige's Fifty-three Stations of the Tōkaidō.",
+    "meanwhile": "In Britain the first passenger railways run, and France has a new king after the revolution of 1830."
+  }
+}

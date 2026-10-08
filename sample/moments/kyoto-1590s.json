@@ -1,0 +1,77 @@
+{
+  "id": "kyoto-1590s",
+  "region": "JP",
+  "place": "Kyoto",
+  "period": "1590s",
+  "start": 1585,
+  "end": 1600,
+  "focus": 1590,
+  "status": "PUBLISHED",
+  "hook": "A foot soldier's son rules Japan, and his tea master pays the price.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/%E7%8B%A9%E9%87%8E%E6%B0%B8%E5%BE%B3%E3%80%8A%E6%AA%9C%E5%9B%B3%E5%B1%8F%E9%A2%A8%E3%80%8B1590%E5%B9%B4%E3%80%8116%E4%B8%96%E7%B4%80%E3%80%81%E6%A1%83%E5%B1%B1%E6%99%82%E4%BB%A3%E3%80%81%E6%9D%B1%E4%BA%AC%E5%9B%BD%E7%AB%8B%E5%8D%9A%E7%89%A9%E9%A4%A8.jpg/1280px-%E7%8B%A9%E9%87%8E%E6%B0%B8%E5%BE%B3%E3%80%8A%E6%AA%9C%E5%9B%B3%E5%B1%8F%E9%A2%A8%E3%80%8B1590%E5%B9%B4%E3%80%8116%E4%B8%96%E7%B4%80%E3%80%81%E6%A1%83%E5%B1%B1%E6%99%82%E4%BB%A3%E3%80%81%E6%9D%B1%E4%BA%AC%E5%9B%BD%E7%AB%8B%E5%8D%9A%E7%89%A9%E9%A4%A8.jpg",
+    "credit": "Kanō Eitoku, Momoyama-period screen painting",
+    "source": "https://commons.wikimedia.org/wiki/File:%E7%8B%A9%E9%87%8E%E6%B0%B8%E5%BE%B3%E3%80%8A%E6%AA%9C%E5%9B%B3%E5%B1%8F%E9%A2%A8%E3%80%8B1590%E5%B9%B4%E3%80%8116%E4%B8%96%E7%B4%80%E3%80%81%E6%A1%83%E5%B1%B1%E6%99%82%E4%BB%A3%E3%80%81%E6%9D%B1%E4%BA%AC%E5%9B%BD%E7%AB%8B%E5%8D%9A%E7%89%A9%E9%A4%A8.jpg"
+  },
+  "world": {
+    "governs": "Hideyoshi rules through the great lords. Peasants were disarmed in the sword hunt of 1588.",
+    "everyday": "Farmers are tied to their fields by the land survey, and Kyoto is enclosed by new earthen walls.",
+    "arts": "Gold-leaf screens by the Kanō painters, and the quiet, plain tea of Rikyū.",
+    "meanwhile": "In England, Elizabeth I has just beaten the Armada. In 1592 Hideyoshi sends his armies into Korea."
+  },
+  "cards": [
+    {
+      "type": "SCENE",
+      "kicker": "Setting the scene · Kyoto, 1590s",
+      "title": "After a century of civil war",
+      "text": "Toyotomi Hideyoshi has brought the warring lords to heel. For the first time in generations, Japan answers to one ruler."
+    },
+    {
+      "type": "PERSON",
+      "text": "Born the son of a foot soldier, now the most powerful man in Japan. He builds lavishly and loves the tea ceremony.",
+      "year": 1590,
+      "person": "toyotomi-hideyoshi"
+    },
+    {
+      "type": "PERSON",
+      "text": "Hideyoshi's tea master. He turns tea into an art of plain, quiet beauty: wabi.",
+      "year": 1590,
+      "person": "sen-no-rikyu"
+    },
+    {
+      "type": "SCENE",
+      "kicker": "Everyday life",
+      "title": "Counted field by field",
+      "text": "Most people farm. Hideyoshi's great land survey measures every field and fixes who owes how much rice in tax."
+    },
+    {
+      "type": "EVENT",
+      "event": "rikyu-death"
+    },
+    {
+      "type": "PERSON",
+      "text": "Hideyoshi's strongest ally, sent east to rule from a small castle town called Edo. He is waiting.",
+      "year": 1590,
+      "person": "tokugawa-ieyasu"
+    },
+    {
+      "type": "EVENT",
+      "event": "sekigahara"
+    }
+  ],
+  "doors": [
+    {
+      "to": "tokyo-1870s",
+      "kind": "Follow Ieyasu's little town",
+      "text": "Three centuries on, Edo becomes Tokyo",
+      "faces": [
+        "tokugawa-ieyasu"
+      ]
+    },
+    {
+      "to": "paris-1870s",
+      "kind": "Far ahead, far away",
+      "text": "A republic born out of defeat"
+    }
+  ]
+}

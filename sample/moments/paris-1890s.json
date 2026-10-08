@@ -1,0 +1,88 @@
+{
+  "id": "paris-1890s",
+  "region": "FR",
+  "place": "Paris",
+  "period": "1890s",
+  "start": 1890,
+  "end": 1900,
+  "focus": 1898,
+  "status": "PUBLISHED",
+  "hook": "Electric light, cabarets, and a trial that tears France in two.",
+  "art": {
+    "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Henri_de_Toulouse-Lautrec%2C_At_the_Moulin_Rouge.jpg/1280px-Henri_de_Toulouse-Lautrec%2C_At_the_Moulin_Rouge.jpg",
+    "credit": "Henri de Toulouse-Lautrec, At the Moulin Rouge, 1892–95",
+    "source": "https://commons.wikimedia.org/wiki/File:Henri_de_Toulouse-Lautrec,_At_the_Moulin_Rouge.jpg"
+  },
+  "world": {
+    "governs": "The Republic lives through scandal after scandal: Panama in 1892, then the Dreyfus affair.",
+    "everyday": "Electric light, the bicycle craze and, from 1898, the digging of the first metro line change city life.",
+    "arts": "Montmartre cabarets, Toulouse-Lautrec's posters, and in 1895 the Lumière brothers' first film screenings.",
+    "meanwhile": "Britain is at the height of Queen Victoria's empire, and Japan has just defeated China in 1895."
+  },
+  "cards": [
+    {
+      "type": "SCENE",
+      "kicker": "Setting the scene · Paris, 1890s",
+      "title": "Electric light and a divided country",
+      "text": "The Eiffel Tower, built for the 1889 World's Fair, stands over a city of cafés and cabarets. Beneath the glitter, one trial is tearing France in two."
+    },
+    {
+      "type": "SCENE",
+      "kicker": "Setting the scene · the Dreyfus affair",
+      "title": "A captain convicted on forged evidence",
+      "text": "In 1894 Alfred Dreyfus, a Jewish army officer, is convicted of treason and sent to Devil's Island. The evidence against him does not hold up."
+    },
+    {
+      "type": "PERSON",
+      "text": "The most famous novelist in France. Taking Dreyfus's side will cost him a conviction for libel and almost a year of exile in England.",
+      "year": 1898,
+      "person": "emile-zola"
+    },
+    {
+      "type": "PERSON",
+      "text": "Out of parliament since the Panama scandal cost him his seat, he writes for the newspaper L'Aurore.",
+      "year": 1898,
+      "person": "georges-clemenceau"
+    },
+    {
+      "type": "EVENT",
+      "event": "jaccuse"
+    },
+    {
+      "type": "PERSON",
+      "text": "A Polish student who came to Paris in 1891. Working in a shed with Pierre Curie, she is about to change physics.",
+      "year": 1898,
+      "person": "marie-curie"
+    },
+    {
+      "type": "EVENT",
+      "event": "polonium-radium"
+    },
+    {
+      "type": "LIFE",
+      "year": 1895,
+      "life": "a-washerwoman-on-the-seine"
+    }
+  ],
+  "doors": [
+    {
+      "to": "paris-1870s",
+      "kind": "Twenty years earlier",
+      "text": "Painters outside the Salon",
+      "faces": [
+        "emile-zola",
+        "paul-cezanne"
+      ]
+    },
+    {
+      "to": "tokyo-1870s",
+      "kind": "Elsewhere",
+      "text": "Japan opens up to the world"
+    },
+    {
+      "to": "kyoto-1590s",
+      "kind": "Long before, far away",
+      "text": "Tea and power in Kyoto"
+    }
+  ]
+}

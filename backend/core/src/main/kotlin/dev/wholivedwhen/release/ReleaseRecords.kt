@@ -1,0 +1,108 @@
+package dev.wholivedwhen.release
+
+import dev.wholivedwhen.domain.CardType
+import dev.wholivedwhen.domain.Domain
+import dev.wholivedwhen.domain.PublicationStatus
+
+// The records of a release directory, one class per kind of line (see sample/README.md). Records point at each
+// other by id; ReleaseCompiler resolves them. Years are integers, negative for BCE.
+
+/** A line of `regions.jsonl`: a place seen through today's borders, e.g. "FR". */
+data class RegionRecord(val id: String, val name: String)
+
+/** A line of `eras.jsonl`. Both years are inclusive; no end means it lasts until today. */
+data class EraRecord(
+    val id: String,
+    val region: String,
+    val label: String,
+    /** Who governed, when the label does not say it. */
+    val governedBy: String? = null,
+    val start: Int,
+    val end: Int? = null,
+)
+
+/** A line of `people.jsonl`. */
+data class PersonRecord(
+    val id: String,
+    val name: String,
+    val born: Int,
+    val died: Int? = null,
+    val approximate: Boolean = false,
+    val region: String,
+    val domain: Domain,
+    val occupation: String,
+    /** The English Wikipedia article's title, when it is not the name with underscores. */
+    val wikipedia: String? = null,
+    val bio: String? = null,
+)
+
+/** A line of `lives.jsonl`: a typical existence, set in the era of its region that covers [start]. */
+data class LifeRecord(val id: String, val region: String, val label: String, val description: String, val start: Int, val end: Int)
+
+/** A line of `events.jsonl`, set in the era of its region that covers [year]. */
+data class EventRecord(
+    val id: String,
+    val region: String,
+    val year: Int,
+    val title: String,
+    val description: String,
+    val source: String,
+    val participants: List<ParticipantRecord> = emptyList(),
+)
+
+data class ParticipantRecord(val person: String, val role: String)
+
+/** A line of `connections.jsonl`: two different people, how they were linked, when, and the source. */
+data class ConnectionRecord(val people: List<String>, val kind: String, val year: Int, val text: String, val source: String)
+
+/** A file in `moments/`, named after its id. */
+data class MomentRecord(
+    val id: String,
+    val region: String,
+    val place: String,
+    val period: String,
+    val start: Int,
+    val end: Int,
+    val focus: Int,
+    val status: PublicationStatus,
+    val featured: Boolean = false,
+    val hook: String,
+    val art: ArtRecord? = null,
+    val world: WorldRecord? = null,
+    val cards: List<CardRecord> = emptyList(),
+    val doors: List<DoorRecord> = emptyList(),
+)
+
+data class ArtRecord(val url: String, val credit: String, val source: String)
+
+data class WorldRecord(val governs: String, val everyday: String, val arts: String, val meanwhile: String)
+
+/** A story card. Person, life and event cards name the record they show. */
+data class CardRecord(
+    val type: CardType,
+    val kicker: String? = null,
+    val title: String? = null,
+    val text: String? = null,
+    val year: Int? = null,
+    val person: String? = null,
+    val life: String? = null,
+    val event: String? = null,
+    val art: ArtRecord? = null,
+)
+
+/** A way out of the moment into the moment [to], showing [faces] when it follows people. */
+data class DoorRecord(val to: String, val kind: String, val text: String, val faces: List<String> = emptyList())
+
+/** A release as read from its directory, before it is compiled. */
+data class Release(
+    val regions: List<RegionRecord>,
+    val eras: List<EraRecord>,
+    val people: List<PersonRecord>,
+    val lives: List<LifeRecord>,
+    val events: List<EventRecord>,
+    val connections: List<ConnectionRecord>,
+    val moments: List<MomentRecord>,
+)
+
+/** What is wrong with a release, naming the file and the record. */
+class InvalidReleaseException(message: String) : RuntimeException(message)
