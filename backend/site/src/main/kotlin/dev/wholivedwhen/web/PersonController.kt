@@ -11,6 +11,5 @@ class PersonController(private val personService: PersonService) : PeopleApi {
     override fun getPerson(slug: String, year: Int?) = personService.detail(slug, year)
 
     /** A few people alive in [year] in each region except [exclude]: the "meanwhile, elsewhere" of a moment. */
-    override fun listAliveElsewhere(year: Int, exclude: String, perRegion: Int) =
-        personService.aliveElsewhere(exclude.uppercase(), year, perRegion.coerceIn(1, 5))
+    override fun listAliveElsewhere(year: Int, exclude: String, perRegion: Int) = personService.aliveElsewhere(exclude, year, perRegion)
 }
