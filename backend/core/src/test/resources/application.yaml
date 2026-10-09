@@ -1,0 +1,6 @@
+# core's slice tests (@DataJpaTest) leave out ReleaseSchemaConfiguration: they migrate the default schema as one user,
+# who is also the reader the migrations grant to.
+spring:
+  flyway:
+    placeholders:
+      reader: current_user
