@@ -1,0 +1,20 @@
+# The workbench's Postgres, on the Mac only, never deployed. ./gradlew :workbench:bootRun starts it through Spring Boot's
+# Docker Compose support, connects to it, and stops it on exit. It is the site's db service (docker-compose.yml), same
+# image and collation, with settings of its own (db/workbench.env), its port published on loopback, on a port Docker
+# picks, and a named volume of its own: what the workbench fetches will live there.
+name: who-lived-when-workbench
+
+services:
+  db:
+    extends:
+      file: docker-compose.yml
+      service: db
+    env_file: !override
+      - db/workbench.env
+    ports:
+      - "127.0.0.1::5432"
+    volumes: !override
+      - workbench-db-data:/var/lib/postgresql
+
+volumes:
+  workbench-db-data:

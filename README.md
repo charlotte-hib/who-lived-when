@@ -59,7 +59,7 @@ Outside CI they drive the installed Google Chrome; CI installs Playwright's Chro
 
 Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API tests that run against `sample/`.
 
-Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers), the release compiler and loader, and the Wikipedia enrichment, and `site` the public API, the only project in the production image.
+Three Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers), the release compiler and loader, and the Wikipedia enrichment; `site` the public API, the only project in the production image; and `workbench` the curator's tools, never in an image (today, story drafting, below).
 
 The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir` (Jackson), checks it and maps it to entities (MapStruct, `ReleaseMapper`), then stores it in Postgres (`ReleaseLoader`), in place of whatever the database held. Its JSON Schema, `sample/release.schema.json`, is generated from the record classes (`./gradlew :core:releaseSchema`); the tests check it is current and that `sample/` matches it. `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
 
@@ -73,13 +73,15 @@ Next.js 16 App Router with server components for data. Calls to the backend go t
 
 ## Drafting a story with Claude
 
-Stories are prose, so they are drafted by Claude and reviewed by a person before they ship:
+Stories are prose, so they are drafted by Claude and reviewed by a person before they ship. Drafting is part of the workbench, which runs on the curator's machine only, with Docker running:
 
 ```sh
 cd backend
 export ANTHROPIC_API_KEY=...
-./gradlew bootRun --args='--app.drafting.moment=edo-1830s --server.port=0'
+./gradlew :workbench:bootRun --args='--app.drafting.moment=edo-1830s'
 ```
+
+The workbench has a Postgres of its own (`compose.workbench.yaml`, at the repository's root, with a named volume), which Spring Boot's Docker Compose support starts and stops with it. It loads `sample/` into it, fills in the Wikipedia leads, drafts, and exits.
 
 `StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `sample/moments/<moment>.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
 
