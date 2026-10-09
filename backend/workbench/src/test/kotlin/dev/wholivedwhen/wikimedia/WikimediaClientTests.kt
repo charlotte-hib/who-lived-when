@@ -1,0 +1,183 @@
+package dev.wholivedwhen.wikimedia
+
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.containing
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.okJson
+import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.stubbing.Scenario
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.wiremock.spring.ConfigureWireMock
+import org.wiremock.spring.EnableWireMock
+import org.wiremock.spring.InjectWireMock
+import dev.wholivedwhen.testing.PostgresTestConfiguration
+import java.util.concurrent.Executors
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+/**
+ * Against a fake Wikimedia (WireMock) that answers with responses recorded from the real one, with the real pace from
+ * application.yaml. The stubs ask to retry after 1 second, to keep the tests short.
+ */
+@SpringBootTest(
+    properties = [
+        "app.wikipedia.enrich=false",
+        "app.wikimedia.wikidata-api=\${wikimedia.base-url}/w/api.php",
+        "app.wikimedia.wikipedia-api=\${wikimedia.base-url}/{language}/w/api.php",
+    ],
+)
+@EnableWireMock(ConfigureWireMock(baseUrlProperties = ["wikimedia.base-url"], filesUnderClasspath = "wiremock"))
+@Import(PostgresTestConfiguration::class)
+class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
+
+    @InjectWireMock
+    private lateinit var server: WireMockServer
+
+    private val wikidata = urlPathEqualTo("/w/api.php")
+    private val wikipedia = urlPathEqualTo("/en/w/api.php")
+    private val entities = aResponse().withHeader("Content-Type", "application/json")
+        .withBodyFile("wikidata/wbgetentities-Q1048-Q535.json")
+    private val pages = aResponse().withHeader("Content-Type", "application/json")
+        .withBodyFile("wikipedia/en-victor-hugo-julius-caesar-emile-zola.json")
+
+    private fun caesarAndHugo() =
+        wikimedia.entities(listOf("Q1048", "Q535"), listOf("info", "labels", "aliases", "claims", "sitelinks"), listOf("en", "fr", "ja"), listOf("enwiki", "frwiki"))
+
+    private fun threePages() = wikimedia.pages("en", listOf("Victor Hugo", "Julius Caesar", "Émile Zola"))
+
+    /** When the fake Wikimedia received each request, in milliseconds, in order. */
+    private fun received() = server.allServeEvents.map { it.request.loggedDate.time }.sorted()
+
+    @Test
+    fun `asks Wikidata for up to 50 entities, with maxlag, and returns them as they came`() {
+        server.stubFor(get(wikidata).willReturn(entities))
+
+        val answer = caesarAndHugo()
+
+        assertEquals("Julius Caesar", answer.path("entities").path("Q1048").path("labels").path("en").path("value").asString())
+        // Victor Hugo has no English label, only a "mul" one, which was not asked for: his English article's title.
+        assertEquals("Victor Hugo", answer.path("entities").path("Q535").path("sitelinks").path("enwiki").path("title").asString())
+        server.verify(
+            getRequestedFor(wikidata)
+                .withQueryParam("action", equalTo("wbgetentities"))
+                .withQueryParam("ids", equalTo("Q1048|Q535"))
+                .withQueryParam("props", equalTo("info|labels|aliases|claims|sitelinks"))
+                .withQueryParam("languages", equalTo("en|fr|ja"))
+                .withQueryParam("sitefilter", equalTo("enwiki|frwiki"))
+                .withQueryParam("maxlag", equalTo("5"))
+                .withQueryParam("format", equalTo("json"))
+                .withHeader("User-Agent", containing("WhoLivedWhen/")),
+        )
+    }
+
+    @Test
+    fun `asks a Wikipedia edition for the leads, thumbnails and revisions of up to 20 pages`() {
+        server.stubFor(get(wikipedia).willReturn(pages))
+
+        val answer = threePages()
+
+        val titles = answer.path("query").path("pages").iterator().asSequence().map { it.path("title").asString() }.toList()
+        assertEquals(listOf("Julius Caesar", "Victor Hugo", "Émile Zola"), titles)
+        server.verify(
+            getRequestedFor(wikipedia)
+                .withQueryParam("action", equalTo("query"))
+                .withQueryParam("prop", equalTo("extracts|pageimages|info"))
+                .withQueryParam("exintro", equalTo("1"))
+                .withQueryParam("explaintext", equalTo("1"))
+                .withQueryParam("piprop", equalTo("thumbnail"))
+                .withQueryParam("pithumbsize", equalTo("400"))
+                .withQueryParam("titles", equalTo("Victor Hugo|Julius Caesar|Émile Zola"))
+                .withQueryParam("redirects", equalTo("1"))
+                .withQueryParam("maxlag", equalTo("5"))
+                .withQueryParam("format", equalTo("json"))
+                .withQueryParam("formatversion", equalTo("2"))
+                .withHeader("User-Agent", containing("WhoLivedWhen/")),
+        )
+    }
+
+    @Test
+    fun `batches beyond the APIs' limits are refused before any request`() {
+        assertThrows<IllegalArgumentException> { wikimedia.entities(List(51) { "Q${it + 1}" }, listOf("info"), listOf("en"), listOf("enwiki")) }
+        assertThrows<IllegalArgumentException> { wikimedia.entities(emptyList(), listOf("info"), listOf("en"), listOf("enwiki")) }
+        assertThrows<IllegalArgumentException> { wikimedia.pages("en", List(21) { "Page $it" }) }
+
+        assertTrue(server.allServeEvents.isEmpty())
+    }
+
+    @Test
+    fun `after a 429, waits as long as Retry-After asks, then tries again`() {
+        server.stubFor(
+            get(wikidata).inScenario("429").whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withStatus(429).withHeader("Retry-After", "1")).willSetStateTo("waited"),
+        )
+        server.stubFor(get(wikidata).inScenario("429").whenScenarioStateIs("waited").willReturn(entities))
+
+        assertTrue(caesarAndHugo().path("entities").has("Q1048"))
+
+        val (first, second) = received()
+        assertTrue(second - first >= 1000, "retried after ${second - first} ms")
+    }
+
+    @Test
+    fun `when Wikidata is lagging (maxlag), waits as long as Retry-After asks, then tries again`() {
+        server.stubFor(
+            get(wikidata).inScenario("maxlag").whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(
+                    aResponse().withHeader("Content-Type", "application/json").withHeader("Retry-After", "1")
+                        .withHeader("MediaWiki-API-Error", "maxlag").withBodyFile("wikidata/maxlag.json"),
+                )
+                .willSetStateTo("waited"),
+        )
+        server.stubFor(get(wikidata).inScenario("maxlag").whenScenarioStateIs("waited").willReturn(entities))
+
+        assertTrue(caesarAndHugo().path("entities").has("Q535"))
+
+        val (first, second) = received()
+        assertTrue(second - first >= 1000, "retried after ${second - first} ms")
+    }
+
+    @Test
+    fun `other API errors, and waits longer than the client accepts, fail at once`() {
+        server.stubFor(get(wikidata).willReturn(okJson("""{"error":{"code":"no-such-entity","info":"Could not find an entity with the ID \"Q0\"."}}""")))
+        val error = assertThrows<WikimediaException> { caesarAndHugo() }
+        assertTrue("no-such-entity" in error.message!!, error.message)
+
+        server.stubFor(get(wikipedia).willReturn(aResponse().withStatus(429).withHeader("Retry-After", "3600")))
+        assertThrows<WikimediaException> { threePages() }
+
+        assertEquals(2, server.allServeEvents.size)
+    }
+
+    @Test
+    fun `callers in parallel are served one at a time`() {
+        server.stubFor(get(wikipedia).willReturn(pages.withFixedDelay(SLOW_ANSWER_MS)))
+
+        Executors.newVirtualThreadPerTaskExecutor().use { executor -> List(3) { executor.submit { threePages() } }.forEach { it.get() } }
+
+        // Each request reaches the server only once the one before it has been answered.
+        received().zipWithNext { previous, next -> assertTrue(next - previous >= SLOW_ANSWER_MS - TOLERANCE_MS, "${next - previous} ms apart") }
+    }
+
+    @Test
+    fun `requests go out two a second at most`() {
+        server.stubFor(get(wikipedia).willReturn(pages))
+
+        repeat(6) { threePages() }
+
+        // The rate limiter gives one permit per half second, so n requests span at least n - 2 half seconds.
+        val times = received()
+        assertTrue(times.last() - times.first() >= (times.size - 2) * 500 - TOLERANCE_MS, "${times.size} requests in ${times.last() - times.first()} ms")
+    }
+
+    private companion object {
+        const val SLOW_ANSWER_MS = 700
+        const val TOLERANCE_MS = 20
+    }
+}

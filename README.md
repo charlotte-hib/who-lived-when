@@ -83,6 +83,8 @@ export ANTHROPIC_API_KEY=...
 
 The workbench has a Postgres of its own (`compose.workbench.yaml`, at the repository's root, with a named volume), which Spring Boot's Docker Compose support starts and stops with it. It loads `sample/` into it, fills in the Wikipedia leads, drafts, and exits.
 
+The workbench reaches Wikimedia through one client, `WikimediaClient`: Wikidata's `wbgetentities` (up to 50 entities a request) and Wikipedia's `action=query` (leads, thumbnails and revisions of up to 20 pages), always with `maxlag=5` and a User-Agent with a contact. Every call shares one pace, Resilience4j instances named `wikimedia` in its `application.yaml`: one request at a time (a bulkhead), two a second at most (a rate limiter), and, when Wikimedia answers 429 or the `maxlag` error, a wait as long as its `Retry-After` asks before trying again (a retry), during which every other call waits too. Its tests run against WireMock, with responses recorded from the real APIs.
+
 `StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `sample/moments/<moment>.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
 
 ## API

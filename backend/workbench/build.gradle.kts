@@ -18,11 +18,16 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	implementation("com.anthropic:anthropic-java:2.68.0")
+	implementation("org.springframework.boot:spring-boot-starter-restclient")
+	// One shared pace for every call to Wikimedia: rate limiter, bulkhead and retry, configured in application.yaml.
+	implementation("io.github.resilience4j:resilience4j-spring-boot4:2.4.0")
 	// Postgres on ./gradlew :workbench:bootRun: starts the db service of compose.workbench.yaml and connects to it.
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation(testFixtures(project(":core")))
+	// A fake Wikimedia on a real port, answering with responses recorded from the real one.
+	testImplementation("org.wiremock.integrations:wiremock-spring-boot:4.4.3")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

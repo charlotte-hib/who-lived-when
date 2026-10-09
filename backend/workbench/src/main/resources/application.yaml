@@ -15,6 +15,11 @@ spring:
       ddl-auto: validate
   http:
     clients:
+      # The JDK's HTTP client, which never retries on its own: only the Wikimedia pace decides when to try again.
+      # Spring Boot would otherwise pick Apache HttpClient whenever it is on the classpath (WireMock brings it to the
+      # tests), and that one retries 429s by itself.
+      imperative:
+        factory: jdk
       # For every RestClient, today only WikipediaClient: a slow article must not hold up enrichment.
       connect-timeout: 5s
       read-timeout: 5s
@@ -30,3 +35,34 @@ app:
     # Wikimedia asks API clients for a contact in the User-Agent.
     user-agent: WhoLivedWhen/0.1 (https://github.com/charlotte-hib/who-lived-when)
     enrich: true
+  wikimedia:
+    wikidata-api: https://www.wikidata.org/w/api.php
+    wikipedia-api: https://{language}.wikipedia.org/w/api.php
+    user-agent: ${app.wikipedia.user-agent}
+    # Wikimedia's advice for bots: let the servers say no when they are more than 5 seconds behind.
+    maxlag: 5
+    default-retry-wait: 5s
+    max-retry-wait: 2m
+
+# One pace for every call to Wikimedia (WikimediaClient), well under its 200 requests a minute for a client with a
+# User-Agent, and one request at a time, as its robot policy asks of the Action API.
+resilience4j:
+  ratelimiter:
+    instances:
+      wikimedia:
+        # Two permits a second.
+        limit-for-period: 1
+        limit-refresh-period: 500ms
+        timeout-duration: 10s
+  bulkhead:
+    instances:
+      wikimedia:
+        max-concurrent-calls: 1
+        # Long enough for the call ahead to wait out several Retry-After.
+        max-wait-duration: 15m
+  retry:
+    instances:
+      wikimedia:
+        # The waits come from Retry-After (WikimediaRetry).
+        max-attempts: 6
+        retry-exceptions: dev.wholivedwhen.wikimedia.WikimediaBusyException
