@@ -38,6 +38,9 @@ app:
   wikimedia:
     wikidata-api: https://www.wikidata.org/w/api.php
     wikipedia-api: https://{language}.wikipedia.org/w/api.php
+    wikidata-sparql: https://query.wikidata.org/sparql
+    # The query service stops a query after 60 seconds: a little longer, for its answer to arrive.
+    sparql-timeout: 75s
     user-agent: ${app.wikipedia.user-agent}
     # Wikimedia's advice for bots: let the servers say no when they are more than 5 seconds behind.
     maxlag: 5
