@@ -80,10 +80,11 @@ class PersonMapperTests {
         assertEquals("Victor Hugo", hugo.label)
         assertEquals("Victor Hugo", hugo.labelFr)
         assertEquals(1802 to 1885, hugo.born to hugo.died)
-        // A deprecated occupation is left out; places of residence keep their years.
+        // A deprecated occupation is left out; places of residence keep their years. That one's only reference says
+        // which Wikipedia it was imported from (P143), which names no source.
         assertEquals(15, hugo.occupations.size)
         assertEquals("Q214917", hugo.occupations.first().occupation)
-        assertEquals(PersonPlace("P551", "Q92817862", 1852, 1855, referenced = true), hugo.places.single { it.place == "Q92817862" })
+        assertEquals(PersonPlace("P551", "Q92817862", 1852, 1855, referenced = false), hugo.places.single { it.place == "Q92817862" })
         assertEquals(emptySet(), hugo.flags)
     }
 
@@ -96,7 +97,8 @@ class PersonMapperTests {
         assertNull(chnumet.diedPrecision)
         assertEquals(true, chnumet.diedEstimated)
         assertEquals(true, chnumet.datesApproximate)
-        assertEquals(setOf(PersonFlag.BIRTH_IMPRECISE, PersonFlag.DEATH_ESTIMATED), chnumet.flags)
+        // The birth's only reference is an import from a Wikipedia (P143).
+        assertEquals(setOf(PersonFlag.BIRTH_IMPRECISE, PersonFlag.BIRTH_UNREFERENCED, PersonFlag.DEATH_ESTIMATED), chnumet.flags)
     }
 
     @Test

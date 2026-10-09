@@ -77,7 +77,7 @@ class DatasetMappingTests(
             jdbc.queryForList("select occupation from dataset.person_occupation where person = 'Q19244' order by position", String::class.java),
         )
         assertEquals(
-            listOf(listOf("BIRTH_IMPRECISE", "POORLY_DOCUMENTED"), listOf("OCCUPATION_UNREFERENCED", "POORLY_DOCUMENTED")),
+            listOf("BIRTH_IMPRECISE", "BIRTH_UNREFERENCED", "DEATH_UNREFERENCED", "OCCUPATION_UNREFERENCED").map { listOf(it, "POORLY_DOCUMENTED") },
             rows("select reason, flag from dataset.person_flag where person = 'Q228951' order by reason"),
         )
         assertEquals(

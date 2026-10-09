@@ -34,7 +34,11 @@ data class Statement(
     val qualifiers: Map<String, List<Snak>> = emptyMap(),
     val references: List<JsonNode> = emptyList(),
 ) {
-    val referenced get() = references.isNotEmpty()
+    /**
+     * Has a reference naming a source. One that only says which Wikimedia project the statement was copied from
+     * (P143, with its URL or retrieval date) does not count: it says where the value came from, not who stated it.
+     */
+    val referenced get() = references.any { reference -> reference.path("snaks").propertyNames().any { it !in WIKIMEDIA_IMPORT } }
 
     /** Qualified "circa" (P1480, sourcing circumstances). */
     val circa get() = qualifiers[SOURCING_CIRCUMSTANCES].orEmpty().any { it.id == CIRCA }
@@ -45,6 +49,9 @@ data class Statement(
     private companion object {
         const val SOURCING_CIRCUMSTANCES = "P1480"
         const val CIRCA = "Q5727902"
+
+        /** Imported from Wikimedia project (P143), Wikimedia import URL (P4656), retrieved (P813). */
+        val WIKIMEDIA_IMPORT = setOf("P143", "P4656", "P813")
     }
 }
 
