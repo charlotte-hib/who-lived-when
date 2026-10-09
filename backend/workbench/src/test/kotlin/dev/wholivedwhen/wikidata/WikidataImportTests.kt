@@ -11,6 +11,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.stubbing.Scenario
+import io.github.resilience4j.retry.RetryRegistry
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -27,14 +28,16 @@ import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.node.ObjectNode
 import dev.wholivedwhen.testing.PostgresTestConfiguration
 import dev.wholivedwhen.wikimedia.WikimediaBusyException
+import dev.wholivedwhen.wikimedia.WikimediaClient
 import dev.wholivedwhen.wikimedia.WikimediaException
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
  * The import against a fake Wikimedia (WireMock), answering with responses recorded from the real one on 2026-10-09:
- * the 28 people born from 2000 to 1901 BCE with at least 10 sitelinks, their entities, and the 11 places and
- * occupations they link to (Egypt's statements cut down to three, to keep the file small).
+ * the 28 people born from 2000 to 1901 BCE with at least 10 sitelinks, their entities, the 11 places and
+ * occupations they link to (Egypt's statements cut down to three, to keep the file small), and the 25 classes above
+ * those occupations, three levels up.
  */
 @SpringBootTest(
     properties = [
@@ -57,6 +60,10 @@ class WikidataImportTests(
     @Autowired private val store: RawStore,
     @Autowired private val jdbc: JdbcTemplate,
     @Autowired private val jsonMapper: JsonMapper,
+    @Autowired private val wikimedia: WikimediaClient,
+    @Autowired private val discovery: Discovery,
+    @Autowired private val properties: WikidataProperties,
+    @Autowired private val retries: RetryRegistry,
 ) {
 
     @InjectWireMock
@@ -71,10 +78,18 @@ class WikidataImportTests(
     private fun entities(props: String): MappingBuilder =
         get(wikidata).withQueryParam("action", equalTo("wbgetentities")).withQueryParam("props", equalTo(props))
 
+    /** The places and occupations the people link to: Egypt (Q79) among them. */
+    private fun linked(): MappingBuilder = entities("info|labels|claims").withQueryParam("ids", containing("Q79"))
+
+    /** The classes above the occupations, level by level ([CLASSES]). */
+    private fun classes(level: Int, props: String = "info|labels|claims"): MappingBuilder =
+        entities(props).withQueryParam("ids", equalTo(CLASSES[level - 1]))
+
     private fun stubFirstImport() {
         server.stubFor(get(sparql).willReturn(json("sparql-born-2000-to-1901-bce.json").withHeader("Content-Type", "application/sparql-results+json")))
         server.stubFor(entities("info|labels|aliases|claims|sitelinks").willReturn(json("wbgetentities-born-2000-to-1901-bce.json")))
-        server.stubFor(entities("info|labels|claims").willReturn(json("wbgetentities-linked-to-born-2000-to-1901-bce.json")))
+        server.stubFor(linked().willReturn(json("wbgetentities-linked-to-born-2000-to-1901-bce.json")))
+        (1..3).forEach { server.stubFor(classes(it).willReturn(json("wbgetentities-classes-$it-of-born-2000-to-1901-bce.json"))) }
     }
 
     private fun count(table: String) = jdbc.queryForObject("select count(*) from raw.$table", Int::class.java)!!
@@ -89,14 +104,14 @@ class WikidataImportTests(
     }
 
     @Test
-    fun `discovers people, fetches their entities, then the places and occupations they link to`() {
+    fun `discovers people, fetches their entities, then the places and occupations they link to, then the classes above`() {
         stubFirstImport()
 
         val run = wikidataImport.run()
 
         assertEquals(ImportPhase.DONE, run.phase)
         assertEquals(28, count("discovered"))
-        assertEquals(28 + 11, count("entity"))
+        assertEquals(28 + 11 + 25, count("entity"))
         assertEquals(48, jdbc.queryForObject("select sitelinks from raw.discovered where qid = 'Q19244'", Int::class.java))
         assertEquals(
             listOf("Amenemhat III", "2553827743"),
@@ -104,7 +119,7 @@ class WikidataImportTests(
                 .single().values.toList(),
         )
         assertEquals("Egypt", jdbc.queryForObject("select json -> 'labels' -> 'en' ->> 'value' from raw.entity where qid = 'Q79'", String::class.java))
-        assertEquals(mapOf<String, Any?>("requests" to 3, "busy" to 0, "fetched" to 39, "unchanged" to 0, "missing" to 0), store.counts(run))
+        assertEquals(mapOf<String, Any?>("requests" to 6, "busy" to 0, "fetched" to 64, "unchanged" to 0, "missing" to 0), store.counts(run))
 
         val query = requests("/sparql").single().queryParams["query"]!!.firstValue()
         assertTrue("?sitelinks >= 10" in query, query)
@@ -118,6 +133,18 @@ class WikidataImportTests(
             linked.queryParams["ids"]!!.firstValue(),
         )
         assertEquals(null, linked.queryParams["sitefilter"])
+        // Each class once: "monarch", the parent of "pharaoh", is fetched as an occupation already.
+        assertEquals(CLASSES, requests("/w/api.php").drop(2).map { it.queryParams["ids"]!!.firstValue() })
+    }
+
+    @Test
+    fun `fetches only as many levels of classes as asked for`() {
+        stubFirstImport()
+
+        val run = WikidataImport(wikimedia, discovery, store, properties.copy(classLevels = 1), retries).run()
+
+        assertEquals(ImportPhase.DONE, run.phase)
+        assertEquals(28 + 11 + 6, count("entity"))
     }
 
     @Test
@@ -133,14 +160,15 @@ class WikidataImportTests(
         (linked.path("entities") as ObjectNode).putObject("Q110550696").put("id", "Q110550696").put("missing", "")
         server.stubFor(entities("info").withQueryParam("ids", containing("Q19244")).willReturn(okJson(people.toString())))
         server.stubFor(entities("info").withQueryParam("ids", containing("Q79")).willReturn(okJson(linked.toString())))
+        (1..3).forEach { server.stubFor(classes(it, "info").willReturn(json("wbgetentities-classes-$it-of-born-2000-to-1901-bce-info.json"))) }
 
         val run = wikidataImport.run()
 
-        // The query, the people's revisions, Amenemhat III, the linked entities' revisions.
-        assertEquals(mapOf<String, Any?>("requests" to 4, "busy" to 0, "fetched" to 1, "unchanged" to 37, "missing" to 1), store.counts(run))
+        // The query, the people's revisions, Amenemhat III, the linked entities' revisions, each level of classes'.
+        assertEquals(mapOf<String, Any?>("requests" to 7, "busy" to 0, "fetched" to 1, "unchanged" to 62, "missing" to 1), store.counts(run))
         val fetchedAgain = requests("/w/api.php").filter { it.queryParams["props"]!!.firstValue() != "info" }
         assertEquals(listOf("Q19244"), fetchedAgain.map { it.queryParams["ids"]!!.firstValue() })
-        assertEquals(28 + 10, count("entity"))
+        assertEquals(28 + 10 + 25, count("entity"))
     }
 
     @Test
@@ -169,17 +197,17 @@ class WikidataImportTests(
     @Test
     fun `a run that stopped half way resumes at the next batch`() {
         stubFirstImport()
-        server.stubFor(entities("info|labels|claims").atPriority(1).willReturn(aResponse().withStatus(503)))
+        server.stubFor(linked().atPriority(1).willReturn(aResponse().withStatus(503)))
         assertThrows<HttpServerErrorException> { wikidataImport.run() }
 
         server.resetRequests()
-        server.stubFor(entities("info|labels|claims").atPriority(1).willReturn(json("wbgetentities-linked-to-born-2000-to-1901-bce.json")))
+        server.stubFor(linked().atPriority(1).willReturn(json("wbgetentities-linked-to-born-2000-to-1901-bce.json")))
         val run = wikidataImport.run()
 
         assertEquals(1L, run.id)
         assertEquals(ImportPhase.DONE, run.phase)
-        assertEquals(listOf("info|labels|claims"), requests("/").map { it.queryParams["props"]!!.firstValue() })
-        assertEquals(28 + 11, count("entity"))
+        assertEquals(List(4) { "info|labels|claims" }, requests("/").map { it.queryParams["props"]!!.firstValue() })
+        assertEquals(28 + 11 + 25, count("entity"))
     }
 
     @Test
@@ -190,7 +218,7 @@ class WikidataImportTests(
                 .willReturn(aResponse().withStatus(429).withHeader("Retry-After", "1")).willSetStateTo("waited"),
         )
         val run = wikidataImport.run()
-        assertEquals(mapOf<String, Any?>("requests" to 4, "busy" to 1, "fetched" to 39, "unchanged" to 0, "missing" to 0), store.counts(run))
+        assertEquals(mapOf<String, Any?>("requests" to 7, "busy" to 1, "fetched" to 64, "unchanged" to 0, "missing" to 0), store.counts(run))
         assertTrue(run.notBefore != null)
 
         // A run that stopped while asked to wait 2 more seconds.
@@ -212,7 +240,7 @@ class WikidataImportTests(
         val run = wikidataImport.run()
 
         assertEquals(ImportPhase.DONE, run.phase)
-        assertEquals(28 + 11, count("entity"))
+        assertEquals(28 + 11 + 25, count("entity"))
     }
 
     @Test
@@ -230,7 +258,7 @@ class WikidataImportTests(
             .withHeader("MediaWiki-API-Error", "maxlag").withBodyFile("wikidata/maxlag.json")
         (0 until times).forEach { i ->
             server.stubFor(
-                entities("info|labels|claims").atPriority(1).inScenario("lag")
+                linked().atPriority(1).inScenario("lag")
                     .whenScenarioStateIs(if (i == 0) Scenario.STARTED else "lagged $i")
                     .willReturn(lagging).willSetStateTo("lagged ${i + 1}"),
             )
@@ -246,5 +274,11 @@ class WikidataImportTests(
         // What the query service answers when it stops a query after 60 seconds.
         const val TIMEOUT = "java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException"
         const val NO_ONE = """{"head":{"vars":["person","sitelinks"]},"results":{"bindings":[]}}"""
+        // The classes above the occupations, a level a request, as the import asks for them.
+        val CLASSES = listOf(
+            "Q1097498|Q16511993|Q2478141|Q467|Q48352|Q702269",
+            "Q113291098|Q1251441|Q129586023|Q16744001|Q327055|Q7313543|Q84048852|Q895526|Q9584157",
+            "Q106559804|Q118947579|Q134480019|Q154954|Q215627|Q28640|Q43229|Q5|Q618532|Q80994",
+        )
     }
 }

@@ -19,6 +19,7 @@ class DiscoveryPlanTests {
         languages = listOf("en"),
         sites = listOf("enwiki"),
         linkedProperties = listOf("P19"),
+        classLevels = 3,
         restarts = 0,
         restartPause = Duration.ZERO,
     )

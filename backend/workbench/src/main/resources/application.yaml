@@ -69,10 +69,17 @@ app:
     sites: [enwiki, frwiki]
     # Places of birth, death, work and residence, and occupations.
     linked-properties: [P19, P20, P937, P551, P106]
+    # The classes above each occupation, through which an occupation missing from data/occupations.jsonl maps to a
+    # domain: "lithographer" is a printmaker, an artist.
+    class-levels: 3
     # Wikidata refused every maxlag=5 request for over 5 minutes on 2026-10-09, longer than the retries (about 25 s).
     # The import then resumes by itself after a pause: about an hour of such lag in a row before it gives up.
     restarts: 12
     restart-pause: 5m
+  dataset:
+    # Set to true to map what the last import fetched to the fetched dataset's rows (schema dataset), then exit
+    # (DatasetMappingJob).
+    map: false
 
 # One pace for every call to Wikimedia (WikimediaClient), well under its 200 requests a minute for a client with a
 # User-Agent, and one request at a time, as its robot policy asks of the Action API.
