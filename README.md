@@ -59,7 +59,7 @@ Outside CI they drive the installed Google Chrome; CI installs Playwright's Chro
 
 Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API tests that run against `sample/`.
 
-Three Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers), the release compiler and loader, and the Wikipedia enrichment; `site` the public API, the only project in the production image; and `workbench` the curator's tools, never in an image (today, story drafting, below).
+Three Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers), the release compiler and loader, and the Wikipedia enrichment; `site` the public API, the only project in the production image; and `workbench` the curator's tools, never in an image (today, story drafting and the Wikidata import, below).
 
 The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir` (Jackson), checks it and maps it to entities (MapStruct, `ReleaseMapper`), then stores it in Postgres. Its JSON Schema, `sample/release.schema.json`, is generated from the record classes (`./gradlew :core:releaseSchema`); the tests check it is current and that `sample/` matches it. `./gradlew bootRun` and the tests load `sample/`. The Docker image holds no data: Compose mounts `sample/` read-only at `/app/release`.
 
@@ -83,9 +83,24 @@ export ANTHROPIC_API_KEY=...
 
 The workbench has a Postgres of its own (`compose.workbench.yaml`, at the repository's root, with a named volume), which Spring Boot's Docker Compose support starts and stops with it. It loads `sample/` into it, fills in the Wikipedia leads, drafts, and exits.
 
-The workbench reaches Wikimedia through one client, `WikimediaClient`: Wikidata's `wbgetentities` (up to 50 entities a request) and Wikipedia's `action=query` (leads, thumbnails and revisions of up to 20 pages), always with `maxlag=5` and a User-Agent with a contact. Every call shares one pace, Resilience4j instances named `wikimedia` in its `application.yaml`: one request at a time (a bulkhead), two a second at most (a rate limiter), and, when Wikimedia answers 429 or the `maxlag` error, a wait as long as its `Retry-After` asks before trying again (a retry), during which every other call waits too. Its tests run against WireMock, with responses recorded from the real APIs.
+The workbench reaches Wikimedia through one client, `WikimediaClient`: Wikidata's `wbgetentities` (up to 50 entities a request) and Wikipedia's `action=query` (leads, thumbnails and revisions of up to 20 pages), always with `maxlag=5`, and Wikidata's query service (SPARQL), all with a User-Agent with a contact. Every call shares one pace, Resilience4j instances named `wikimedia` in its `application.yaml`: one request at a time (a bulkhead), two a second at most (a rate limiter), and, when Wikimedia answers 429 or the `maxlag` error, a wait as long as its `Retry-After` asks before trying again (a retry), during which every other call waits too. Its tests run against WireMock, with responses recorded from the real APIs.
 
 `StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `sample/moments/<moment>.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
+
+## Importing people from Wikidata
+
+The workbench fetches people from Wikidata into a schema of its own in its Postgres, `raw`, which keeps what came back as it came (`jsonb`) and is never dropped, unlike the release schema rebuilt from `sample/` on every start. Its migrations are in `workbench` (`db/raw`), run by a Flyway of their own.
+
+```sh
+cd backend
+./gradlew :workbench:bootRun --args='--app.wikidata.import=true --app.wikipedia.enrich=false'
+```
+
+1. **Discovery** asks Wikidata's query service for humans born from 3500 BCE to today with at least 25 sitelinks, or 10 when born before 1800, leaving out people with no date of death born less than 110 years ago. One query per slice of birth dates, under the service's 60 seconds: a century before 1500, a decade before 1900, then a year. A slice the service stops anyway is asked for again in halves. Q-ids and sitelinks go to `raw.discovered`.
+2. **People**: their entities, 50 a request (`wbgetentities`: labels and aliases in English, French, Japanese and `mul`, statements, English and French Wikipedia sitelinks), into `raw.entity` with their revision.
+3. **Linked**: the places of birth, death, work and residence, and the occupations, those people's statements point to, the same way.
+
+Run it again later and it refreshes: for entities already stored it first asks for their latest revisions only (`props=info`, 50 a request), and fetches again only those that changed. Every request goes through `WikimediaClient`'s pace. Progress is kept in `raw.import_run`, `raw.discovery_slice` and `raw.import_item`, one transaction per slice or batch, so a run that stops resumes at the next one, after waiting out any `Retry-After` Wikimedia gave before it stopped. Each run counts its requests, the waits Wikimedia asked for, and the entities fetched, unchanged and gone. Enrichment is turned off on the command line because it calls Wikipedia outside that pace.
 
 ## API
 

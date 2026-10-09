@@ -46,6 +46,29 @@ app:
     maxlag: 5
     default-retry-wait: 5s
     max-retry-wait: 2m
+  wikidata:
+    # Set to true to run the import (or resume the one that stopped), then exit (WikidataImportJob).
+    import: false
+    # 3500 BCE, in the query service's astronomical years (0 is 1 BCE).
+    born-from: -3499
+    # 25 sitelinks, or 10 for people born before 1800.
+    sitelinks: 25
+    early-sitelinks: 10
+    early-until: 1800
+    # No date of death and born within 110 years: alive, so left out.
+    living-years: 110
+    # Births per query: a century before 1500, a decade before 1900, then a year. Measured on 2026-10-09: about 11 s
+    # for the 15th century, 5 s for the 1790s, 5 to 10 s for one year of the 20th century, when a whole decade of it ran
+    # past 60 s. A slice that still does is asked for again in halves.
+    slice-years:
+      - until: 1500
+        years: 100
+      - until: 1900
+        years: 10
+    languages: [en, fr, ja, mul]
+    sites: [enwiki, frwiki]
+    # Places of birth, death, work and residence, and occupations.
+    linked-properties: [P19, P20, P937, P551, P106]
 
 # One pace for every call to Wikimedia (WikimediaClient), well under its 200 requests a minute for a client with a
 # User-Agent, and one request at a time, as its robot policy asks of the Action API.
