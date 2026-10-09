@@ -6,16 +6,19 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import kotlin.test.assertEquals
 import dev.wholivedwhen.metrics.VisitorEvents
+import dev.wholivedwhen.testing.PostgresTestConfiguration
 
 /** Runs against the release in the repository's `sample/`: paris-1870s has a 7-card story, edo-1830s has none. */
 @SpringBootTest(properties = ["app.wikipedia.enrich=false"])
 @AutoConfigureMockMvc
+@Import(PostgresTestConfiguration::class)
 class EventApiTests(@Autowired private val mockMvc: MockMvc, @Autowired private val registry: MeterRegistry) {
 
     private fun post(body: String, type: MediaType = MediaType.APPLICATION_JSON) =

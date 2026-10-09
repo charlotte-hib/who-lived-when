@@ -1,8 +1,8 @@
-# Layered over docker-compose.yml for the end-to-end tests:
+# Layered over docker-compose.yml for the end-to-end tests, and for the API tests in CI (http/):
 #   docker compose -f docker-compose.yml -f e2e/compose.yaml up --build --detach --wait
 # The tests only need the release in sample/, so the backend skips the Wikipedia enrichment: no calls to
-# Wikipedia from CI, and the people stay exactly as in sample/. The tests also read stories from the backend
-# itself (API_URL), which the site does not forward, so its port is published on loopback.
+# Wikipedia from CI, and the people stay exactly as in sample/. The tests also call the backend itself (API_URL),
+# which the site does not forward, so its port is published on loopback.
 
 services:
   backend:

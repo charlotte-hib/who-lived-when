@@ -5,12 +5,15 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import dev.wholivedwhen.testing.PostgresTestConfiguration
 
 /** Actuator on the main port, as in development; the prod profile moves it to a port of its own. */
 @SpringBootTest(properties = ["app.wikipedia.enrich=false"])
 @AutoConfigureMockMvc
+@Import(PostgresTestConfiguration::class)
 class ActuatorTests(@Autowired private val mockMvc: MockMvc) {
 
     @Test

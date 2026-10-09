@@ -1,0 +1,12 @@
+# Postgres for ./gradlew bootRun, which runs in this directory: Spring Boot's Docker Compose support starts the
+# db service when the backend starts, connects to it, and stops it when the backend stops. The same service as in
+# ../docker-compose.yml, with its port published on loopback, on a port Docker picks, and no named volume: the backend
+# loads the release on every start.
+services:
+  db:
+    extends:
+      file: ../docker-compose.yml
+      service: db
+    ports:
+      - "127.0.0.1::5432"
+    volumes: !reset []

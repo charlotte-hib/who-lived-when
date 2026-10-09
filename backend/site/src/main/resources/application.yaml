@@ -5,7 +5,10 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:h2:mem:wholivedwhen
+    # Postgres. On ./gradlew bootRun, Spring Boot's Docker Compose support starts it (backend/compose.yaml) and
+    # connects to it; in the Docker image, application-prod.yaml points at the db service; tests run their own.
+    hikari:
+      maximum-pool-size: 5
   mvc:
     # Errors (404, 400) as RFC 9457 Problem Details: application/problem+json, described in api/openapi.yaml.
     problemdetails:
@@ -13,10 +16,8 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: create-drop
-  h2:
-    console:
-      enabled: true
+      # Flyway creates the schema from core's db/migration; Hibernate only checks the entities match it.
+      ddl-auto: validate
   http:
     clients:
       # For every RestClient, today only WikipediaClient: a slow article must not hold up enrichment.

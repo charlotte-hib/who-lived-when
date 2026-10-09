@@ -3,6 +3,7 @@ import org.springframework.boot.gradle.plugin.SpringBootPlugin
 // The model every app shares: JPA entities, repositories and small helpers. A library, not an app.
 plugins {
 	`java-library`
+	`java-test-fixtures`
 	kotlin("jvm")
 	kotlin("plugin.allopen")
 	kotlin("plugin.jpa")
@@ -23,16 +24,26 @@ dependencies {
 	implementation(platform(SpringBootPlugin.BOM_COORDINATES))
 	// Entities and repositories are part of core's API: every app that uses them needs JPA.
 	api("org.springframework.boot:spring-boot-starter-data-jpa")
+	// The schema: SQL migrations in db/migration, which Flyway runs on Postgres in every app that uses core.
+	runtimeOnly("org.springframework.boot:spring-boot-starter-flyway")
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
+	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	implementation("org.mapstruct:mapstruct:$mapstructVersion")
 	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+	testImplementation("org.flywaydb:flyway-core")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("com.github.victools:jsonschema-generator:5.0.0")
 	testImplementation("com.networknt:json-schema-validator:3.0.8")
-	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	// Postgres for the tests of every project, in a container: PostgresTestConfiguration.
+	testFixturesImplementation(platform(SpringBootPlugin.BOM_COORDINATES))
+	testFixturesImplementation("org.springframework.boot:spring-boot-test")
+	testFixturesApi("org.springframework.boot:spring-boot-testcontainers")
+	testFixturesApi("org.testcontainers:testcontainers-postgresql")
+	testFixturesImplementation("tools.jackson.dataformat:jackson-dataformat-yaml")
 }
 
 kotlin {
@@ -53,10 +64,14 @@ tasks.withType<Test> {
 
 // The tests compile the repository's sample/ release and check it against its JSON Schema.
 val sample = rootProject.file("../sample")
+// The tests' Postgres runs the image of the db service in the repository's Compose file.
+val compose = rootProject.file("../docker-compose.yml")
 
 tasks.test {
 	inputs.dir(sample).withPropertyName("sample").withPathSensitivity(PathSensitivity.RELATIVE)
+	inputs.file(compose).withPropertyName("compose").withPathSensitivity(PathSensitivity.RELATIVE)
 	systemProperty("sample.dir", sample.path)
+	systemProperty("compose.file", compose.path)
 }
 
 tasks.register<JavaExec>("releaseSchema") {

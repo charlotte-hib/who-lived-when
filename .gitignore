@@ -7,6 +7,8 @@
 site.env
 # Grafana's admin password (docker-compose.yml, monitoring profile).
 grafana.env
+# The database's password on the server, made by deploy/deploy.sh (docker-compose.yml).
+db.env
 # HTTP Client CLI: JUnit reports and personal overrides.
 http/reports/
 http/http-client.private.env.json
