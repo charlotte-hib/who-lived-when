@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: workbench
+  main:
+    # A command-line app for now: it loads the release, does what it was asked and exits.
+    web-application-type: none
+  threads:
+    virtual:
+      enabled: true
+  # Postgres: on ./gradlew :workbench:bootRun, Spring Boot's Docker Compose support starts it (compose.workbench.yaml,
+  # at the repository's root) and connects to it; tests run their own.
+  jpa:
+    hibernate:
+      # Flyway creates the schema from core's db/migration; Hibernate only checks the entities match it.
+      ddl-auto: validate
+  http:
+    clients:
+      # For every RestClient, today only WikipediaClient: a slow article must not hold up enrichment.
+      connect-timeout: 5s
+      read-timeout: 5s
+
+app:
+  drafting:
+    # Set to a moment id (e.g. --app.drafting.moment=edo-1830s) to draft its story with Claude and exit.
+    moment:
+    model: claude-opus-5-5
+    output-dir: drafts
+  wikipedia:
+    base-url: https://en.wikipedia.org/api/rest_v1
+    # Wikimedia asks API clients for a contact in the User-Agent.
+    user-agent: WhoLivedWhen/0.1 (https://github.com/charlotte-hib/who-lived-when)
+    enrich: true

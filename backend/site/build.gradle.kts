@@ -24,7 +24,6 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	implementation("org.mapstruct:mapstruct:$mapstructVersion")
-	implementation("com.anthropic:anthropic-java:2.68.0")
 	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	// Swagger UI on ./gradlew bootRun only: developmentOnly stays out of the jar and the image.
 	developmentOnly("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
@@ -113,7 +112,7 @@ tasks.test {
 	systemProperty("compose.file", compose.path)
 }
 
-// Run from backend/, as before the split, so story drafts still land in backend/drafts.
+// Run from backend/, where Spring Boot's Docker Compose support finds compose.yaml.
 tasks.bootRun {
 	workingDir = rootProject.projectDir
 	systemProperty("app.release.dir", sample.path)

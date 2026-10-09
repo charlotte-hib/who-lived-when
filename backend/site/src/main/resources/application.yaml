@@ -39,11 +39,6 @@ management:
         http.server.requests: 25ms, 50ms, 100ms, 250ms, 500ms, 1000ms, 2500ms, 5000ms
 
 app:
-  drafting:
-    # Set to a moment id (e.g. --app.drafting.moment=edo-1830s) to draft its story with Claude and exit.
-    moment:
-    model: claude-opus-5-5
-    output-dir: drafts
   wikipedia:
     base-url: https://en.wikipedia.org/api/rest_v1
     # Wikimedia asks API clients for a contact in the User-Agent.
