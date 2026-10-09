@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
 import dev.wholivedwhen.wikimedia.SparqlTimeoutException
 import dev.wholivedwhen.wikimedia.WikimediaClient
+import java.time.Duration
 import java.time.LocalDate
 
 @ConfigurationProperties("app.wikidata")
@@ -28,6 +29,10 @@ data class WikidataProperties(
     val sites: List<String>,
     /** The properties whose values are fetched too: places of birth, death, work and residence, and occupations. */
     val linkedProperties: List<String>,
+    /** How many times in a row the import resumes by itself, without progress, when Wikimedia keeps asking to wait. */
+    val restarts: Int,
+    /** How long it pauses first, on top of any `Retry-After`. */
+    val restartPause: Duration,
 )
 
 data class SliceYears(val until: Int, val years: Int)

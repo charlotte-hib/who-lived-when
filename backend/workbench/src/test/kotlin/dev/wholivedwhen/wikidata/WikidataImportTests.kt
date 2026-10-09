@@ -26,6 +26,7 @@ import org.wiremock.spring.InjectWireMock
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.databind.node.ObjectNode
 import dev.wholivedwhen.testing.PostgresTestConfiguration
+import dev.wholivedwhen.wikimedia.WikimediaBusyException
 import dev.wholivedwhen.wikimedia.WikimediaException
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -43,6 +44,10 @@ import kotlin.test.assertTrue
         // One slice, the 20th century BCE, as the default plan asks for it.
         "app.wikidata.born-from=-1999",
         "app.wikidata.born-until=-1899",
+        // Each call tries twice, and the import resumes once, at once.
+        "resilience4j.retry.instances.wikimedia.max-attempts=2",
+        "app.wikidata.restarts=1",
+        "app.wikidata.restart-pause=10ms",
     ],
 )
 @EnableWireMock(ConfigureWireMock(baseUrlProperties = ["wikimedia.base-url"], filesUnderClasspath = "wiremock"))
@@ -197,6 +202,39 @@ class WikidataImportTests(
         wikidataImport.run()
 
         assertTrue(requests("/").first().loggedDate.time - resumed >= 1900, "resumed without waiting")
+    }
+
+    @Test
+    fun `when Wikidata stays behind longer than the retries, the import resumes by itself`() {
+        stubFirstImport()
+        stubLinkedLagging(times = 2)
+
+        val run = wikidataImport.run()
+
+        assertEquals(ImportPhase.DONE, run.phase)
+        assertEquals(28 + 11, count("entity"))
+    }
+
+    @Test
+    fun `the import gives up when Wikidata stays behind through every restart without progress`() {
+        stubFirstImport()
+        stubLinkedLagging(times = 4)
+
+        assertThrows<WikimediaBusyException> { wikidataImport.run() }
+        assertEquals(28, count("entity"))
+    }
+
+    /** The places and occupations answer `maxlag` [times] times, then as recorded. */
+    private fun stubLinkedLagging(times: Int) {
+        val lagging = aResponse().withHeader("Content-Type", "application/json").withHeader("Retry-After", "1")
+            .withHeader("MediaWiki-API-Error", "maxlag").withBodyFile("wikidata/maxlag.json")
+        (0 until times).forEach { i ->
+            server.stubFor(
+                entities("info|labels|claims").atPriority(1).inScenario("lag")
+                    .whenScenarioStateIs(if (i == 0) Scenario.STARTED else "lagged $i")
+                    .willReturn(lagging).willSetStateTo("lagged ${i + 1}"),
+            )
+        }
     }
 
     private fun recorded(file: String) =

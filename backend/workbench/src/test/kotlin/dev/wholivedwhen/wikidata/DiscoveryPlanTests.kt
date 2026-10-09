@@ -1,6 +1,7 @@
 package dev.wholivedwhen.wikidata
 
 import org.junit.jupiter.api.Test
+import java.time.Duration
 import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -18,6 +19,8 @@ class DiscoveryPlanTests {
         languages = listOf("en"),
         sites = listOf("enwiki"),
         linkedProperties = listOf("P19"),
+        restarts = 0,
+        restartPause = Duration.ZERO,
     )
     private val plan = DiscoveryPlan(properties, LocalDate.of(2026, 10, 9))
     private val slices = plan.slices()
