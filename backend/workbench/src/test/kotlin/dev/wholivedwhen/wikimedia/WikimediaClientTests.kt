@@ -31,6 +31,7 @@ import kotlin.test.assertTrue
         "app.wikipedia.enrich=false",
         "app.wikimedia.wikidata-api=\${wikimedia.base-url}/w/api.php",
         "app.wikimedia.wikipedia-api=\${wikimedia.base-url}/{language}/w/api.php",
+        "app.wikimedia.wikidata-sparql=\${wikimedia.base-url}/sparql",
     ],
 )
 @EnableWireMock(ConfigureWireMock(baseUrlProperties = ["wikimedia.base-url"], filesUnderClasspath = "wiremock"))
@@ -42,6 +43,7 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
 
     private val wikidata = urlPathEqualTo("/w/api.php")
     private val wikipedia = urlPathEqualTo("/en/w/api.php")
+    private val sparql = urlPathEqualTo("/sparql")
     private val entities = aResponse().withHeader("Content-Type", "application/json")
         .withBodyFile("wikidata/wbgetentities-Q1048-Q535.json")
     private val pages = aResponse().withHeader("Content-Type", "application/json")
@@ -174,6 +176,31 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
         // The rate limiter gives one permit per half second, so n requests span at least n - 2 half seconds.
         val times = received()
         assertTrue(times.last() - times.first() >= (times.size - 2) * 500 - TOLERANCE_MS, "${times.size} requests in ${times.last() - times.first()} ms")
+    }
+
+    @Test
+    fun `asks the query service for SPARQL results, and tells a query it stopped from other failures`() {
+        server.stubFor(
+            get(sparql).willReturn(
+                aResponse().withHeader("Content-Type", "application/sparql-results+json")
+                    .withBodyFile("wikidata/sparql-born-2000-to-1901-bce.json"),
+            ),
+        )
+        val rows = wikimedia.sparql("SELECT ?person ?sitelinks WHERE { }").path("results").path("bindings")
+        assertEquals("http://www.wikidata.org/entity/Q19244", rows.first().path("person").path("value").asString())
+        server.verify(
+            getRequestedFor(sparql)
+                .withQueryParam("query", equalTo("SELECT ?person ?sitelinks WHERE { }"))
+                .withHeader("Accept", equalTo("application/sparql-results+json"))
+                .withHeader("User-Agent", containing("WhoLivedWhen/")),
+        )
+
+        server.stubFor(get(sparql).willReturn(aResponse().withStatus(500).withBody("java.util.concurrent.TimeoutException")))
+        assertThrows<SparqlTimeoutException> { wikimedia.sparql("SELECT * WHERE { }") }
+        server.stubFor(get(sparql).willReturn(aResponse().withStatus(504)))
+        assertThrows<SparqlTimeoutException> { wikimedia.sparql("SELECT * WHERE { }") }
+        server.stubFor(get(sparql).willReturn(aResponse().withStatus(500).withBody("MalformedQueryException")))
+        assertThrows<WikimediaException> { wikimedia.sparql("SELECT * WHERE {") }
     }
 
     private companion object {

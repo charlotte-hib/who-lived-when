@@ -7,8 +7,11 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry
 import io.github.resilience4j.retry.Retry
 import io.github.resilience4j.retry.RetryRegistry
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder
+import org.springframework.boot.http.client.HttpClientSettings
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.toEntity
@@ -21,6 +24,10 @@ data class WikimediaProperties(
     val wikidataApi: String,
     /** Wikipedia's Action API, with `{language}` for the edition, e.g. `en`. */
     val wikipediaApi: String,
+    /** Wikidata's query service, for SPARQL. */
+    val wikidataSparql: String,
+    /** How long a SPARQL query may take: the query service stops each one after 60 seconds. */
+    val sparqlTimeout: Duration,
     /** Wikimedia asks API clients for a contact in the User-Agent. */
     val userAgent: String,
     /** Seconds of replication lag past which the servers answer with the `maxlag` error rather than work. */
@@ -37,9 +44,12 @@ class WikimediaBusyException(message: String, val retryAfter: Duration?) : Runti
 /** An error the Action API answered with, other than `maxlag`, or a wait longer than the client accepts. Not retried. */
 class WikimediaException(message: String) : RuntimeException(message)
 
+/** The query service stopped a SPARQL query that took too long. Not retried: ask for less instead. */
+class SparqlTimeoutException(message: String) : RuntimeException(message)
+
 /**
  * The workbench's way to Wikimedia: Wikidata's and Wikipedia's Action APIs, which answer many entities or pages per
- * request. Returns their JSON as it came.
+ * request, and Wikidata's query service. Returns their JSON as it came.
  *
  * Every call shares one pace, the Resilience4j instances named `wikimedia` in application.yaml: one request at a time,
  * two a second at most. When Wikimedia asks to retry later (HTTP 429, or the `maxlag` error when its servers are
@@ -48,24 +58,46 @@ class WikimediaException(message: String) : RuntimeException(message)
 @Component
 class WikimediaClient(
     builder: RestClient.Builder,
+    requestFactories: ClientHttpRequestFactoryBuilder<*>,
+    clientSettings: HttpClientSettings,
     private val properties: WikimediaProperties,
     rateLimiters: RateLimiterRegistry,
     bulkheads: BulkheadRegistry,
     retries: RetryRegistry,
 ) {
 
-    private val restClient = builder
+    private val restClient = builder.clone()
         .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent)
         .defaultStatusHandler({ it == HttpStatus.TOO_MANY_REQUESTS }) { _, response -> throw busy("HTTP 429", response.headers) }
+        .build()
+
+    // A query may run up to the query service's own limit, longer than any other call is given. When it runs over, the
+    // service stops it with a 500 naming a TimeoutException, or its proxy gives up first with a 504.
+    private val sparqlClient = builder.clone()
+        .requestFactory(requestFactories.build(clientSettings.withReadTimeout(properties.sparqlTimeout)))
+        .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent)
+        .defaultStatusHandler({ it == HttpStatus.TOO_MANY_REQUESTS }) { _, response -> throw busy("HTTP 429", response.headers) }
+        .defaultStatusHandler({ it.is5xxServerError }) { _, response ->
+            val status = response.statusCode.value()
+            val body = response.body.readNBytes(MAX_ERROR_BYTES).decodeToString()
+            if (status == HttpStatus.GATEWAY_TIMEOUT.value() || "TimeoutException" in body) {
+                throw SparqlTimeoutException("The query service stopped the query: HTTP $status")
+            }
+            throw WikimediaException("The query service failed: HTTP $status ${body.take(200)}")
+        }
         .build()
 
     private val rateLimiter: RateLimiter = rateLimiters.rateLimiter(PACE)
     private val bulkhead: Bulkhead = bulkheads.bulkhead(PACE)
     private val retry: Retry = retries.retry(PACE)
 
-    /** Entities by Q-id, [MAX_ENTITIES] at most (`wbgetentities`). Returns the whole answer, entities under `entities`. */
-    fun entities(ids: List<String>, props: List<String>, languages: List<String>, sites: List<String>): JsonNode {
+    /**
+     * Entities by Q-id, [MAX_ENTITIES] at most (`wbgetentities`), with labels and aliases in [languages] only and
+     * sitelinks to [sites] only, or all of them when empty. Returns the whole answer, entities under `entities`.
+     */
+    fun entities(ids: List<String>, props: List<String>, languages: List<String> = emptyList(), sites: List<String> = emptyList()): JsonNode {
         require(ids.size in 1..MAX_ENTITIES) { "Between 1 and $MAX_ENTITIES ids a request, not ${ids.size}" }
+        val filters = mapOf("languages" to languages, "sitefilter" to sites).filterValues { it.isNotEmpty() }
         return get(
             properties.wikidataApi,
             emptyMap(),
@@ -73,9 +105,7 @@ class WikimediaClient(
                 "action" to "wbgetentities",
                 "ids" to ids.joinToString("|"),
                 "props" to props.joinToString("|"),
-                "languages" to languages.joinToString("|"),
-                "sitefilter" to sites.joinToString("|"),
-            ),
+            ) + filters.mapValues { it.value.joinToString("|") },
         )
     }
 
@@ -100,6 +130,16 @@ class WikimediaClient(
                 "formatversion" to "2",
             ),
         )
+    }
+
+    /**
+     * A SPARQL `SELECT` on Wikidata's query service. Returns the results as they came, rows under `results.bindings`.
+     * Throws [SparqlTimeoutException] when the service stops the query for taking too long.
+     */
+    fun sparql(query: String): JsonNode = paced {
+        val response = sparqlClient.get().uri(properties.wikidataSparql + "?query={query}", query)
+            .accept(SPARQL_RESULTS).retrieve().toEntity<JsonNode>()
+        checkNotNull(response.body) { "Empty answer from ${properties.wikidataSparql}" }
     }
 
     private fun get(api: String, apiVariables: Map<String, String>, parameters: Map<String, String>): JsonNode {
@@ -136,5 +176,7 @@ class WikimediaClient(
         const val PACE = "wikimedia"
         const val MAX_ENTITIES = 50
         const val MAX_PAGES = 20
+        private const val MAX_ERROR_BYTES = 4096
+        private val SPARQL_RESULTS = MediaType("application", "sparql-results+json")
     }
 }

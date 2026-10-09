@@ -21,6 +21,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-restclient")
 	// One shared pace for every call to Wikimedia: rate limiter, bulkhead and retry, configured in application.yaml.
 	implementation("io.github.resilience4j:resilience4j-spring-boot4:2.4.0")
+	// The workbench's own schema, raw, migrated apart from the release's (RawStore).
+	implementation("org.flywaydb:flyway-core")
 	// Postgres on ./gradlew :workbench:bootRun: starts the db service of compose.workbench.yaml and connects to it.
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
