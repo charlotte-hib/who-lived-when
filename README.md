@@ -59,7 +59,7 @@ Outside CI they drive the installed Google Chrome; CI installs Playwright's Chro
 
 Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API tests that run against `sample/`.
 
-Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers) and the release compiler, and `site` the public API, the only project in the production image.
+Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers), the release compiler and loader, and the Wikipedia enrichment, and `site` the public API, the only project in the production image.
 
 The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir` (Jackson), checks it and maps it to entities (MapStruct, `ReleaseMapper`), then stores it in Postgres (`ReleaseLoader`), in place of whatever the database held. Its JSON Schema, `sample/release.schema.json`, is generated from the record classes (`./gradlew :core:releaseSchema`); the tests check it is current and that `sample/` matches it. `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
 
