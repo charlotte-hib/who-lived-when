@@ -1,6 +1,6 @@
 # Sample release
 
-The data the site serves: about a hundred people, their eras, events and connections, and ten moments. The backend's tests, the API tests (`http/`), the end-to-end tests (`e2e/`), `./gradlew bootRun` and the Docker image all use it.
+The data the site serves: about a hundred people, their eras, events and connections, and ten moments. The backend's tests, the API tests (`http/`), the end-to-end tests (`e2e/`), `./gradlew bootRun` and `docker compose up`, which mounts it into the backend's container, all use it.
 
 At startup the backend reads the directory in `app.release.dir`, checks it (`ReleaseReader`), resolves its references and sets every life and event in its era (`ReleaseCompiler`, `ReleaseMapper`), then stores it.
 

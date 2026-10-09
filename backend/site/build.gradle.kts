@@ -100,7 +100,7 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
-// The release the tests and bootRun load: the repository's sample/. The Docker image has its own copy.
+// The release the tests and bootRun load: the repository's sample/. Compose mounts it into the container.
 val sample = rootProject.file("../sample")
 // The tests' Postgres runs the image of the db service in the repository's Compose file (core's PostgresTestConfiguration).
 val compose = rootProject.file("../docker-compose.yml")

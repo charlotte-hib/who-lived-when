@@ -1,10 +1,16 @@
 # Production profile (SPRING_PROFILES_ACTIVE=prod), used by the Docker image.
 spring:
+  # The db service in docker-compose.yml, as the two roles of db/roles.sql: the API only reads, and Flyway, which
+  # creates and loads each release's schema, owns them. Their passwords come from db/roles.env, then db-roles.env.
   datasource:
-    # The db service in docker-compose.yml, which gives both services the same settings (db/defaults.env, db.env).
-    url: jdbc:postgresql://db:5432/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://db:5432/wholivedwhen
+    username: site_reader
+    password: ${SITE_READER_PASSWORD}
+  flyway:
+    user: site_owner
+    password: ${SITE_OWNER_PASSWORD}
+    placeholders:
+      reader: site_reader
 
 management:
   server:
