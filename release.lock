@@ -1,0 +1,5 @@
+# The release production serves: the private data repository's data/, packed by its CI into a private package.
+# Change it in a pull request of its own, with the two lines its run prints. deploy/deploy.sh reads RELEASE_ID; the
+# deploy job pulls RELEASE_BUNDLE, by digest.
+RELEASE_ID=b78e6c5855c1e84d3d7e4dbd2314a589d80284f0
+RELEASE_BUNDLE=ghcr.io/charlotte-hib/who-lived-when-release@sha256:b4676b6f9bd6bdaeb857f14627c0346d6f027d91b2aa4ef055e4818f7d0cba99

@@ -17,10 +17,11 @@ services:
       # The API contract the build generates code from (backend/Dockerfile).
       additional_contexts:
         api: ./api
-    # The release it serves, read-only: the checked-out commit's sample/. Its schema is named after that commit
-    # (RELEASE_SHA, written to .env by deploy/deploy.sh); without one, locally and in CI, it is rebuilt on every start.
+    # The release it serves, read-only: in production the private release in release.lock, unpacked on the server
+    # (RELEASE_DIR, written to .env by deploy/deploy.sh); locally and in CI, sample/. Its schema is named after the
+    # deployed commit (RELEASE_SHA); without one, it is rebuilt on every start.
     volumes:
-      - ./sample:/app/release:ro
+      - ${RELEASE_DIR:-./sample}:/app/release:ro
     environment:
       APP_RELEASE_ID: ${RELEASE_SHA:-}
     # Only the passwords of its two roles (db/roles.env, then db-roles.env), which application-prod.yaml reads: never
