@@ -409,9 +409,11 @@ components:
           nullable: true
 
     Life:
-      description: A typical existence in an era, shown as representative of the period rather than as a real person.
+      description: >-
+        A typical existence in an era, shown as representative of the period rather than as a real person. Drawn with its
+        art, else its icon, else a generic one.
       type: object
-      required: [id, label, description, startYear, endYear]
+      required: [id, label, description, startYear, endYear, art, icon]
       properties:
         id:
           type: string
@@ -425,6 +427,44 @@ components:
         endYear:
           type: integer
           format: int32
+        art:
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/LifeArt"
+          nullable: true
+        icon:
+          type: string
+          allOf:
+            - $ref: "#/components/schemas/LifeIcon"
+          nullable: true
+
+    LifeArt:
+      description: A public-domain image of a typical life, with its credit, the page it comes from, and how to frame it in a circle.
+      type: object
+      required: [url, credit, sourceUrl, position, fit]
+      properties:
+        url:
+          type: string
+        credit:
+          type: string
+        sourceUrl:
+          type: string
+        position:
+          description: The point kept in view when cropping, as CSS `object-position`.
+          type: string
+          example: 50% 70%
+        fit:
+          $ref: "#/components/schemas/ArtFit"
+
+    ArtFit:
+      description: How an image fills its frame, as CSS `object-fit`, `COVER` cropped to fill it, `CONTAIN` whole with a margin.
+      type: string
+      enum: [COVER, CONTAIN]
+
+    LifeIcon:
+      description: An icon for a typical life without an image, after the work it stands for.
+      type: string
+      enum: [AMPHORA, BRIEFCASE, CAR, COINS, CONCIERGE_BELL, FACTORY, FISH, HAMMER, LEAF, PICKAXE, SHELL, SHIELD, SHIRT, SHOVEL, SPOOL, SPROUT, WHEAT]
 
     Participant:
       description: Someone in an event, with their part in it, e.g. "author".

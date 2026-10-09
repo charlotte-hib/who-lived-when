@@ -275,7 +275,7 @@ export interface components {
             bioShort: string | null;
             portraitUrl: string | null;
         };
-        /** @description A typical existence in an era, shown as representative of the period rather than as a real person. */
+        /** @description A typical existence in an era, shown as representative of the period rather than as a real person. Drawn with its art, else its icon, else a generic one. */
         Life: {
             id: string;
             label: string;
@@ -284,7 +284,31 @@ export interface components {
             startYear: number;
             /** Format: int32 */
             endYear: number;
+            art: components["schemas"]["LifeArt"] | null;
+            icon: (string & components["schemas"]["LifeIcon"]) | null;
         };
+        /** @description A public-domain image of a typical life, with its credit, the page it comes from, and how to frame it in a circle. */
+        LifeArt: {
+            url: string;
+            credit: string;
+            sourceUrl: string;
+            /**
+             * @description The point kept in view when cropping, as CSS `object-position`.
+             * @example 50% 70%
+             */
+            position: string;
+            fit: components["schemas"]["ArtFit"];
+        };
+        /**
+         * @description How an image fills its frame, as CSS `object-fit`, `COVER` cropped to fill it, `CONTAIN` whole with a margin.
+         * @enum {string}
+         */
+        ArtFit: "COVER" | "CONTAIN";
+        /**
+         * @description An icon for a typical life without an image, after the work it stands for.
+         * @enum {string}
+         */
+        LifeIcon: "AMPHORA" | "BRIEFCASE" | "CAR" | "COINS" | "CONCIERGE_BELL" | "FACTORY" | "FISH" | "HAMMER" | "LEAF" | "PICKAXE" | "SHELL" | "SHIELD" | "SHIRT" | "SHOVEL" | "SPOOL" | "SPROUT" | "WHEAT";
         /** @description Someone in an event, with their part in it, e.g. "author". */
         Participant: {
             person: components["schemas"]["Person"];

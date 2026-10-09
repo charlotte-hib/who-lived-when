@@ -1,6 +1,10 @@
 {
   "$schema" : "https://json-schema.org/draft/2020-12/schema",
   "$defs" : {
+    "ArtFit" : {
+      "type" : "string",
+      "enum" : [ "COVER", "CONTAIN" ]
+    },
     "ArtRecord" : {
       "type" : "object",
       "properties" : {
@@ -162,14 +166,46 @@
       "required" : [ "description", "id", "region", "source", "title", "year" ],
       "additionalProperties" : false
     },
+    "LifeArtRecord" : {
+      "type" : "object",
+      "properties" : {
+        "credit" : {
+          "type" : "string"
+        },
+        "fit" : {
+          "$ref" : "#/$defs/ArtFit"
+        },
+        "position" : {
+          "type" : "string"
+        },
+        "source" : {
+          "type" : "string"
+        },
+        "url" : {
+          "type" : "string"
+        }
+      },
+      "required" : [ "credit", "source", "url" ],
+      "additionalProperties" : false
+    },
+    "LifeIcon" : {
+      "type" : "string",
+      "enum" : [ "AMPHORA", "BRIEFCASE", "CAR", "COINS", "CONCIERGE_BELL", "FACTORY", "FISH", "HAMMER", "LEAF", "PICKAXE", "SHELL", "SHIELD", "SHIRT", "SHOVEL", "SPOOL", "SPROUT", "WHEAT" ]
+    },
     "LifeRecord" : {
       "type" : "object",
       "properties" : {
+        "art" : {
+          "$ref" : "#/$defs/LifeArtRecord"
+        },
         "description" : {
           "type" : "string"
         },
         "end" : {
           "type" : "integer"
+        },
+        "icon" : {
+          "$ref" : "#/$defs/LifeIcon"
         },
         "id" : {
           "type" : "string"

@@ -5,6 +5,7 @@ import org.mapstruct.Mapping
 import dev.wholivedwhen.api.model.ArtworkDto
 import dev.wholivedwhen.api.model.EraDto
 import dev.wholivedwhen.api.model.EventDto
+import dev.wholivedwhen.api.model.LifeArtDto
 import dev.wholivedwhen.api.model.LifeDto
 import dev.wholivedwhen.api.model.ParticipantDto
 import dev.wholivedwhen.api.model.PersonDto
@@ -16,6 +17,7 @@ import dev.wholivedwhen.domain.Era
 import dev.wholivedwhen.domain.Event
 import dev.wholivedwhen.domain.EventParticipant
 import dev.wholivedwhen.domain.Life
+import dev.wholivedwhen.domain.LifeArt
 import dev.wholivedwhen.domain.Person
 import dev.wholivedwhen.domain.Region
 import dev.wholivedwhen.domain.StoryCard
@@ -26,6 +28,7 @@ import dev.wholivedwhen.domain.WorldAround
 interface ApiMapper {
     fun toDto(region: Region): RegionDto
     fun toDto(life: Life): LifeDto
+    fun toDto(art: LifeArt): LifeArtDto
     fun toDto(event: Event): EventDto
     fun toDto(artwork: Artwork): ArtworkDto
     fun toDto(world: WorldAround): WorldAroundDto

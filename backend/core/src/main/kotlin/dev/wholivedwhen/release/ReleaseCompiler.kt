@@ -32,6 +32,7 @@ class CompiledRelease(
 object ReleaseCompiler {
 
     private val mapper = Mappers.getMapper(ReleaseMapper::class.java)
+    private val OBJECT_POSITION = Regex("""(100|[1-9]?[0-9])% (100|[1-9]?[0-9])%""")
 
     fun compile(release: Release): CompiledRelease {
         val references = References()
@@ -48,7 +49,14 @@ object ReleaseCompiler {
         }
         references.people(people)
 
-        val lives = release.lives.map { references.at("lives.jsonl ${it.id}") { mapper.life(it, references) } }
+        val lives = release.lives.map {
+            references.at("lives.jsonl ${it.id}") {
+                if (it.art != null && !OBJECT_POSITION.matches(it.art.position)) {
+                    throw InvalidReleaseException("${references.where}: the art's position is two percentages, e.g. \"50% 70%\"")
+                }
+                mapper.life(it, references)
+            }
+        }
         references.lives(lives)
 
         val events = release.events.map { references.at("events.jsonl ${it.id}") { mapper.event(it, references) } }
