@@ -86,6 +86,38 @@ class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
     }
 
     @Test
+    fun `search forgives typos when too few names contain the query`() {
+        mockMvc.get("/api/search?q=cezane").andExpect {
+            jsonPath("$.people[0].slug") { value("paul-cezanne") }
+        }
+        mockMvc.get("/api/search?q=Monett").andExpect {
+            jsonPath("$.people[0].slug") { value("claude-monet") }
+        }
+    }
+
+    @Test
+    fun `search lists names that start with the query first, then in order of birth`() {
+        mockMvc.get("/api/search?q=napoleon").andExpect {
+            jsonPath("$.people[0].name") { value("Napoleon") }
+            jsonPath("$.people[1].name") { value("Napoleon III") }
+        }
+        mockMvc.get("/api/search?q=louis").andExpect {
+            jsonPath("$.people[0].name") { value("Louis IX") }
+            jsonPath("$.people[1].name") { value("Louis XIV") }
+        }
+    }
+
+    @Test
+    fun `search takes like's wildcards literally`() {
+        listOf("%%", "__", "\\%").forEach { q ->
+            mockMvc.get("/api/search") { param("q", q) }.andExpect {
+                status { isOk() }
+                jsonPath("$.people.length()") { value(0) }
+            }
+        }
+    }
+
+    @Test
     fun `a person's connections are curated links first, then shared events, in order of year`() {
         mockMvc.get("/api/people/emile-zola").andExpect {
             status { isOk() }

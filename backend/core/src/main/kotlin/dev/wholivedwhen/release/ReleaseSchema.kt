@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert
+import org.springframework.jdbc.support.JdbcUtils
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
 import org.springframework.stereotype.Component
 import java.nio.file.Path
@@ -116,8 +117,11 @@ class LoadRelease(private val release: ReleaseProperties) : JavaMigration {
 
         rows.tables.forEach { (table, tableRows) ->
             if (tableRows.isEmpty()) return@forEach
-            SimpleJdbcInsert(jdbc).withSchemaName(schema).withTableName(table)
-                .executeBatch(*tableRows.map(::BeanPropertySqlParameterSource).toTypedArray())
+            val sources = tableRows.map(::BeanPropertySqlParameterSource)
+            // The rows' columns rather than the table's: generated ones (person's search_name) take no value.
+            val columns = sources.first().parameterNames.filter { it != "class" }.map(JdbcUtils::convertPropertyNameToUnderscoreName)
+            SimpleJdbcInsert(jdbc).withSchemaName(schema).withTableName(table).usingColumns(*columns.toTypedArray())
+                .executeBatch(*sources.toTypedArray())
         }
         // Hibernate takes its ids 50 at a time from these: start them after the ids given here.
         for (table in listOf("event_participant", "connection", "story_card", "door")) {

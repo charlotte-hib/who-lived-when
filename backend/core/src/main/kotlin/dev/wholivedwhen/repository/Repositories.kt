@@ -63,6 +63,36 @@ interface PersonRepository : JpaRepository<Person, String> {
 
     fun findByWikipediaTitleIsNotNull(): List<Person>
 
+    /**
+     * People whose name contains [pattern], ignoring case and accents: names that start with it first, then in order of
+     * birth. [pattern] has `\`, `%` and `_` escaped for `like`. Served by the trigram index on `search_name`.
+     */
+    @Query(
+        nativeQuery = true,
+        value = """
+        select p.* from {h-schema}person p
+        where p.search_name like '%' || {h-schema}fold_for_search(:pattern) || '%' escape '\'
+        order by p.search_name like {h-schema}fold_for_search(:pattern) || '%' escape '\' desc, p.birth_year, p.id
+        limit :limit
+        """,
+    )
+    fun findNameContaining(pattern: String, limit: Int): List<Person>
+
+    /**
+     * People whose name nearly contains [query], for typos ("cezane" finds Paul Cézanne): pg_trgm's word similarity, at
+     * its default threshold, closest first. Served by the trigram index, but slow for short, common queries.
+     */
+    @Query(
+        nativeQuery = true,
+        value = """
+        select p.* from {h-schema}person p
+        where {h-schema}fold_for_search(:query) operator(extensions.<%) p.search_name
+        order by extensions.word_similarity({h-schema}fold_for_search(:query), p.search_name) desc, p.birth_year, p.id
+        limit :limit
+        """,
+    )
+    fun findNameSimilar(query: String, limit: Int): List<Person>
+
     @EntityGraph(attributePaths = ["region"])
     fun findBySlug(slug: String): Person?
 }
