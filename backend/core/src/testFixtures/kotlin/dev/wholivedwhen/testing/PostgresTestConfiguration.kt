@@ -20,6 +20,8 @@ class PostgresTestConfiguration {
     @ServiceConnection
     fun postgres(): PostgreSQLContainer {
         val db = YAMLMapper().readTree(compose.toFile()).path("services").path("db")
+        // Testcontainers only accepts images it knows as Postgres, and does not recognise a name with both a tag and a
+        // digest ("postgres:18.6-trixie@sha256:...") as one: say it is.
         val image = DockerImageName.parse(db.path("image").asString()).asCompatibleSubstituteFor("postgres")
         return PostgreSQLContainer(image)
             .withEnv("POSTGRES_INITDB_ARGS", db.path("environment").path("POSTGRES_INITDB_ARGS").asString())
