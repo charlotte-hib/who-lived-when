@@ -12,6 +12,7 @@ import org.springframework.test.context.DynamicPropertySource
 import dev.wholivedwhen.domain.Person
 import dev.wholivedwhen.repository.PersonRepository
 import dev.wholivedwhen.testing.PostgresTestConfiguration
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
@@ -37,6 +38,12 @@ class ReaderUpdatesTests(@Autowired private val people: PersonRepository) {
             zola.domain, zola.occupation, zola.wikipediaTitle)
 
         assertFailsWith<DataAccessException> { people.saveAndFlush(renamed) }
+    }
+
+    @Test
+    fun `the reader searches people's names`() {
+        assertEquals(listOf("emile-zola"), people.findNameContaining("ÉMILE", 6).map { it.slug })
+        assertEquals(listOf("emile-zola"), people.findNameSimilar("Émille", 6).map { it.slug })
     }
 
     companion object {
