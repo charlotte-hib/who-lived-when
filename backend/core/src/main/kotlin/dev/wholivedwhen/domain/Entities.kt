@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OrderBy
 import jakarta.persistence.OrderColumn
+import org.hibernate.annotations.DynamicUpdate
 
 enum class Domain { POWER, ARTS, EVERYDAY }
 
@@ -40,7 +41,12 @@ class Era @Default constructor(
     val endYear: Int,
 )
 
+/**
+ * Updates set only the columns that changed: the site's API may update a person's Wikipedia fields and nothing else
+ * (core's V2__reader.sql), and Hibernate would otherwise set every column.
+ */
 @Entity
+@DynamicUpdate
 class Person @Default constructor(
     @Id val id: String,
     @Column(unique = true) val slug: String,
