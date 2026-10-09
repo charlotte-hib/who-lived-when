@@ -4,6 +4,8 @@
 #   deploy/deploy.sh <commit sha> <backend image@digest> <frontend image@digest>
 # The release (commit and image digests) is written to .env, which Docker Compose reads.
 # The site address to probe comes from site.env (SITE_ADDRESS=...), kept on the server only.
+# The database's password is in db.env (POSTGRES_PASSWORD=...), which this script creates on its first run and the
+# server keeps.
 # Prometheus and Grafana run once the server has grafana.env (GF_SECURITY_ADMIN_PASSWORD=...), kept on the
 # server only too; they start after the release is healthy and never cause a rollback.
 set -euo pipefail
@@ -13,6 +15,7 @@ main() {
   cd "$(dirname "$0")/.."
   [[ -f site.env ]] && SITE=$(value SITE_ADDRESS site.env)
   [[ -n ${SITE:-} ]] || { echo "No SITE_ADDRESS in site.env" >&2; exit 1; }
+  [[ -f db.env ]] || database
   [[ -f .env ]] && cp .env .env.previous
 
   if release "$@" && healthy; then
@@ -39,6 +42,12 @@ release() {
     { printf 'RELEASE_SHA=%s\nBACKEND_IMAGE=%s\nFRONTEND_IMAGE=%s\n' "$1" "$2" "$3" && profiles; } > .env &&
     docker compose pull --quiet backend frontend &&
     docker compose up --detach --remove-orphans --wait backend frontend
+}
+
+# A random password for the database, readable by the deploy user only. Postgres reads it when it creates its data
+# directory, in the db-data volume: a new db.env needs that volume removed too.
+database() {
+  (umask 077 && printf 'POSTGRES_PASSWORD=%s\n' "$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')" > db.env)
 }
 
 # Turns on the monitoring profile when the server has a Grafana admin password.

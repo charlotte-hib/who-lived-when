@@ -151,6 +151,7 @@ jobs:
     needs: images
     runs-on: ubuntu-latest
     env:
+      COMPOSE: docker compose -f docker-compose.yml -f e2e/compose.yaml
       BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend:sha-${{ github.sha }}
       HTTP_CLIENT_IMAGE: jetbrains/intellij-http-client:2026.2.3@sha256:a69390757348c3a758ca36f7b213903929a5799c23702fb7aae2d222d90c59ef
     steps:
@@ -161,11 +162,12 @@ jobs:
           path: ${{ runner.temp }}
       - name: Load the backend image
         run: docker load --input "$RUNNER_TEMP/image.tar"
-      - name: Start the backend
-        # Without Wikipedia enrichment the data is exactly sample/, and the job does not depend on Wikipedia.
+      - name: Start the backend and its database
+        # The image built above, with Postgres as in production. The overlay publishes the backend's port and turns
+        # Wikipedia enrichment off: the data is exactly sample/, and the job does not depend on Wikipedia.
         run: |
-          docker run --detach --name backend --publish 8080:8080 \
-            --env APP_WIKIPEDIA_ENRICH=false --env SPRING_PROFILES_ACTIVE=prod "$BACKEND_IMAGE"
+          $COMPOSE pull --quiet db
+          $COMPOSE up --no-build --pull never --detach backend
       - name: Wait for the API
         run: |
           for _ in $(seq 60); do
@@ -179,7 +181,7 @@ jobs:
             --env-file http-client.env.json --env ci --report --no-progress api.http
       - name: Backend logs
         if: failure()
-        run: docker logs backend
+        run: $COMPOSE logs backend db
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
@@ -208,6 +210,7 @@ jobs:
         working-directory: .
         run: |
           for image in "$RUNNER_TEMP"/images/*/image.tar; do docker load --input "$image"; done
+          $COMPOSE pull --quiet db
           $COMPOSE up --no-build --pull never --detach --wait
       - name: Wait for the backend behind the frontend
         run: timeout 180 sh -c 'until curl -fsS -o /dev/null "http://localhost:3000/api/search?q=a"; do sleep 2; done'

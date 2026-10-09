@@ -18,7 +18,6 @@ val mapstructVersion = "1.6.3"
 
 dependencies {
 	implementation(project(":core"))
-	implementation("org.springframework.boot:spring-boot-h2console")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-restclient")
@@ -28,14 +27,16 @@ dependencies {
 	implementation("org.mapstruct:mapstruct:$mapstructVersion")
 	implementation("com.anthropic:anthropic-java:2.68.0")
 	kapt("org.mapstruct:mapstruct-processor:$mapstructVersion")
-	runtimeOnly("com.h2database:h2")
 	// Swagger UI on ./gradlew bootRun only: developmentOnly stays out of the jar and the image.
 	developmentOnly("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+	// Postgres on ./gradlew bootRun: starts the db service of backend/compose.yaml and connects to it.
+	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 	testImplementation("org.springframework.boot:spring-boot-starter-restclient-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+	testImplementation(testFixtures(project(":core")))
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -103,10 +104,14 @@ tasks.withType<Test> {
 
 // The release the tests and bootRun load: the repository's sample/. The Docker image has its own copy.
 val sample = rootProject.file("../sample")
+// The tests' Postgres runs the image of the db service in the repository's Compose file (core's PostgresTestConfiguration).
+val compose = rootProject.file("../docker-compose.yml")
 
 tasks.test {
 	inputs.dir(sample).withPropertyName("sample").withPathSensitivity(PathSensitivity.RELATIVE)
+	inputs.file(compose).withPropertyName("compose").withPathSensitivity(PathSensitivity.RELATIVE)
 	systemProperty("app.release.dir", sample.path)
+	systemProperty("compose.file", compose.path)
 }
 
 // Run from backend/, as before the split, so story drafts still land in backend/drafts.

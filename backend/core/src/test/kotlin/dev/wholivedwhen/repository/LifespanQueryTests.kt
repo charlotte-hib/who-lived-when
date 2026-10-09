@@ -5,15 +5,18 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
+import org.springframework.context.annotation.Import
 import dev.wholivedwhen.domain.Domain
 import dev.wholivedwhen.domain.Era
 import dev.wholivedwhen.domain.Life
 import dev.wholivedwhen.domain.Person
 import dev.wholivedwhen.domain.Region
+import dev.wholivedwhen.testing.PostgresTestConfiguration
 import kotlin.test.assertEquals
 
 /** The year-range queries behind "who lived when". Both ends of a lifespan are inclusive; no death year means alive. */
 @DataJpaTest
+@Import(PostgresTestConfiguration::class)
 class LifespanQueryTests(
     @Autowired private val entities: TestEntityManager,
     @Autowired private val people: PersonRepository,

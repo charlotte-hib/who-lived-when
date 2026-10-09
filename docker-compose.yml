@@ -1,5 +1,5 @@
-# frontend (Next.js) -> backend (Spring Boot, never published). The frontend listens on
-# localhost only: on the VPS, the server's Caddy terminates HTTPS in front of it (deploy/Caddyfile).
+# frontend (Next.js) -> backend (Spring Boot, never published) -> db (Postgres, never published). The frontend
+# listens on localhost only: on the VPS, the server's Caddy terminates HTTPS in front of it (deploy/Caddyfile).
 # Locally: docker compose up --build, then http://localhost:3000. In production, deploy/deploy.sh
 # sets the images to the digests the pipeline built and signed (in .env), so the VPS never builds.
 #
@@ -18,8 +18,51 @@ services:
       additional_contexts:
         api: ./api
         sample: ./sample
+    # The database's name, user and password (db/defaults.env, then db.env), which application-prod.yaml reads.
+    env_file:
+      - db/defaults.env
+      - path: db.env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     mem_limit: 768m
+
+  # Postgres, on the Compose network only. Its password comes from db.env (POSTGRES_PASSWORD=..., untracked), which
+  # deploy/deploy.sh creates on the server; locally and in CI there is none, and db/defaults.env applies. The backend
+  # reloads the release on every start, so the volume needs no backup.
+  db:
+    image: postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    env_file:
+      - db/defaults.env
+      - path: db.env
+        required: false
+    environment:
+      # Postgres's own collation (code point order) rather than the C library's, which can change order, and
+      # invalidate indexes, when the image's Debian is upgraded.
+      POSTGRES_INITDB_ARGS: --locale-provider=builtin --locale=C.UTF-8
+    # Sized for a small server: the database holds a few megabytes.
+    command:
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - max_connections=20
+      - -c
+      - work_mem=4MB
+      - -c
+      - effective_cache_size=192MB
+    volumes:
+      # Since Postgres 18 the image keeps its data in a versioned directory under /var/lib/postgresql.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      # Over TCP: while the image initialises a new database, Postgres listens on its socket only.
+      test: [CMD-SHELL, pg_isready --host=localhost --username="$$POSTGRES_USER" --dbname="$$POSTGRES_DB"]
+      interval: 10s
+      start_period: 60s
+      start_interval: 1s
+    restart: unless-stopped
+    mem_limit: 256m
 
   frontend:
     image: ${FRONTEND_IMAGE:-who-lived-when-frontend}
@@ -84,5 +127,6 @@ services:
     mem_limit: 192m
 
 volumes:
+  db-data:
   prometheus-data:
   grafana-data:

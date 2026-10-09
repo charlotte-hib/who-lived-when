@@ -11,7 +11,7 @@ A history app you step into. Pick a moment (one place over a few years, like Par
 
 ## Run
 
-Backend (Spring Boot 4, Kotlin, H2 in-memory, virtual threads) on http://localhost:8080:
+Backend (Spring Boot 4, Kotlin, Postgres, virtual threads) on http://localhost:8080. Docker must be running: `bootRun` starts Postgres in a container (Spring Boot's Docker Compose support, `backend/compose.yaml`) and stops it on exit, and the tests start their own (Testcontainers).
 
 ```sh
 cd backend
@@ -61,7 +61,9 @@ Spring Boot 4 and Kotlin, JPA entities, MapStruct for DTOs, and MockMvc API test
 
 Two Gradle projects: `core` holds the model every app shares (JPA entities, repositories, small helpers) and the release compiler, and `site` the public API, the only project in the production image.
 
-The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir` (Jackson), checks it and maps it to entities (MapStruct, `ReleaseMapper`), then stores it (`ReleaseLoader`). Its JSON Schema, `sample/release.schema.json`, is generated from the record classes (`./gradlew :core:releaseSchema`); the tests check it is current and that `sample/` matches it. `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
+The data is a **release**: a directory of JSON Lines files, described in [`sample/README.md`](sample/README.md). At startup the site reads the release in `app.release.dir` (Jackson), checks it and maps it to entities (MapStruct, `ReleaseMapper`), then stores it in Postgres (`ReleaseLoader`), in place of whatever the database held. Its JSON Schema, `sample/release.schema.json`, is generated from the record classes (`./gradlew :core:releaseSchema`); the tests check it is current and that `sample/` matches it. `./gradlew bootRun` and the tests load `sample/`; the Docker image holds a copy of it.
+
+The schema is SQL, in `core` (`db/migration`): Flyway applies the migrations on start, and Hibernate only checks the entities match them (`ddl-auto: validate`). The tests run on the same Postgres image as the site (the `db` service in `docker-compose.yml`), in a container started by Testcontainers (`PostgresTestConfiguration`, in `core`'s test fixtures); a migration test runs them on an empty database. In Compose, Postgres is on the Compose network only, sorts text by code point (the `builtin` collation, which a system upgrade cannot change), and reads its password from `db.env`, which `deploy/deploy.sh` creates on the server; without that file, locally and in CI, `db/defaults.env` applies.
 
 ### Frontend (`frontend/`)
 
@@ -93,7 +95,6 @@ The backend's API, described in [`api/openapi.yaml`](api/openapi.yaml) (OpenAPI 
 - `GET /api/search?q=zola` searches people and moments, ignoring accents.
 - `GET /api/regions`, `GET /api/eras`, `GET /api/eras/{id}`.
 - `POST /api/events` counts one anonymous visitor event (see [Metrics](#metrics)): 204 when counted, 400 when outside the allowed names and values, 413 above 1 KB.
-- H2 console: http://localhost:8080/h2-console (JDBC URL `jdbc:h2:mem:wholivedwhen`).
 
 **Spec first.** The spec is the contract: the backend's controller interfaces and response models are generated from it at build time (openapi-generator, `kotlin-spring`, interfaces and models only), and the controllers implement them. The frontend's types and client come from it too (`openapi-typescript`, `openapi-fetch`). Change the spec, not the generated code (`backend/site/build/generated/openapi`). The spec's constraints (`perRegion` from 1 to 5, `exclude` as a two-letter code, a query of at most 100 characters) become Bean Validation annotations, which Spring enforces: a request outside them gets a 400. Errors are RFC 9457 Problem Details (`application/problem+json`). CI lints it with Redocly (`api/redocly.yaml`). On `./gradlew bootRun`, Swagger UI shows it at http://localhost:8080/swagger-ui.html; it is not in the production image.
 
@@ -105,7 +106,7 @@ The backend's API, described in [`api/openapi.yaml`](api/openapi.yaml) (OpenAPI 
 ijhttp --env-file http/http-client.env.json --env local http/api.http
 ```
 
-CI runs the same file against the backend image (the "API tests" job), never against production.
+CI runs the same file against the backend image, with its database (the "API tests" job), never against production.
 
 ## Metrics
 
@@ -132,6 +133,6 @@ The pipeline (`.github/workflows/ci.yml`) holds no long-lived secrets:
 1. **Every pull request** runs the backend tests and the frontend lint and build, then builds each image once (saved for a day as a workflow artifact) and runs the API tests and the end-to-end tests against those exact images. `main` is protected by a ruleset: changes land only through pull requests that pass the backend tests and the frontend lint and build, with linear history and no force push or deletion.
 2. **On `main`**, the same images are pushed to GHCR tagged with the commit, and given a signed SLSA build provenance attestation and a signed SPDX SBOM (GitHub artifact attestations, Sigstore).
 3. **The deploy job** (GitHub environment `production`) waits for the API and end-to-end tests, verifies each image's provenance with `gh attestation verify`, pins it by digest, joins the tailnet through Tailscale workload identity federation (GitHub OIDC, no auth key), and runs `deploy/deploy.sh` over Tailscale SSH (no SSH key).
-4. **`deploy/deploy.sh`** checks out the commit's Compose config, starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job. Once the release is healthy, it starts or updates Prometheus and Grafana (when the server has `grafana.env`); a monitoring failure is reported but never rolls the site back.
+4. **`deploy/deploy.sh`** checks out the commit's Compose config, creates the database's password on its first run (`db.env`, kept on the server), starts the pinned images, and probes the site. If it is not healthy within three minutes, it rolls back to the previous release and fails the job. Once the release is healthy, it starts or updates Prometheus and Grafana (when the server has `grafana.env`); a monitoring failure is reported but never rolls the site back.
 
 Dependabot keeps Actions (pinned by commit), Gradle, npm and base images up to date.
