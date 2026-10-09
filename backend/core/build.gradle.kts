@@ -1,11 +1,13 @@
 import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
-// The model every app shares: JPA entities, repositories and small helpers. A library, not an app.
+// The model every app shares: JPA entities, repositories, small helpers, and the jobs that load a release and fill
+// in bios from Wikipedia. A library, not an app.
 plugins {
 	`java-library`
 	`java-test-fixtures`
 	kotlin("jvm")
 	kotlin("plugin.allopen")
+	kotlin("plugin.spring")
 	kotlin("plugin.jpa")
 	kotlin("kapt")
 }
@@ -28,6 +30,8 @@ dependencies {
 	runtimeOnly("org.springframework.boot:spring-boot-starter-flyway")
 	runtimeOnly("org.flywaydb:flyway-database-postgresql")
 	runtimeOnly("org.postgresql:postgresql")
+	// The Wikipedia REST client that fills in bios and portraits (service/WikipediaClient).
+	implementation("org.springframework.boot:spring-boot-starter-restclient")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	implementation("org.mapstruct:mapstruct:$mapstructVersion")
