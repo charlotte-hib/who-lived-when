@@ -27,7 +27,7 @@ dependencies {
 	// Entities and repositories are part of core's API: every app that uses them needs JPA.
 	api("org.springframework.boot:spring-boot-starter-data-jpa")
 	// The schema: SQL migrations in db/migration, which Flyway runs on Postgres in every app that uses core.
-	runtimeOnly("org.springframework.boot:spring-boot-starter-flyway")
+	implementation("org.springframework.boot:spring-boot-starter-flyway")
 	runtimeOnly("org.flywaydb:flyway-database-postgresql")
 	runtimeOnly("org.postgresql:postgresql")
 	// The Wikipedia REST client that fills in bios and portraits (service/WikipediaClient).

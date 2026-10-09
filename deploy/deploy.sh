@@ -4,8 +4,9 @@
 #   deploy/deploy.sh <commit sha> <backend image@digest> <frontend image@digest>
 # The release (commit and image digests) is written to .env, which Docker Compose reads.
 # The site address to probe comes from site.env (SITE_ADDRESS=...), kept on the server only.
-# The database's password is in db.env (POSTGRES_PASSWORD=...), which this script creates on its first run and the
-# server keeps.
+# The database's passwords are in db.env (the superuser's, POSTGRES_PASSWORD=...) and db-roles.env (the backend's
+# two roles, SITE_OWNER_PASSWORD and SITE_READER_PASSWORD), which this script fills in when missing and the server keeps.
+# The release's schema is named after RELEASE_SHA.
 # Prometheus and Grafana run once the server has grafana.env (GF_SECURITY_ADMIN_PASSWORD=...), kept on the
 # server only too; they start after the release is healthy and never cause a rollback.
 set -euo pipefail
@@ -15,7 +16,7 @@ main() {
   cd "$(dirname "$0")/.."
   [[ -f site.env ]] && SITE=$(value SITE_ADDRESS site.env)
   [[ -n ${SITE:-} ]] || { echo "No SITE_ADDRESS in site.env" >&2; exit 1; }
-  [[ -f db.env ]] || database
+  passwords
   [[ -f .env ]] && cp .env .env.previous
 
   if release "$@" && healthy; then
@@ -44,10 +45,18 @@ release() {
     docker compose up --detach --remove-orphans --wait backend frontend
 }
 
-# A random password for the database, readable by the deploy user only. Postgres reads it when it creates its data
-# directory, in the db-data volume: a new db.env needs that volume removed too.
-database() {
-  (umask 077 && printf 'POSTGRES_PASSWORD=%s\n' "$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')" > db.env)
+# Random passwords for the database, readable by the deploy user only, for the ones missing. Postgres reads the
+# superuser's when it creates its data directory, in the db-data volume: a new one there needs that volume removed
+# too. The roles' passwords are set again on every start (db/roles.sql).
+passwords() {
+  password db.env POSTGRES_PASSWORD &&
+    password db-roles.env SITE_OWNER_PASSWORD &&
+    password db-roles.env SITE_READER_PASSWORD
+}
+
+password() {
+  [[ -f $1 && -n $(value "$2" "$1") ]] && return
+  (umask 077 && printf '%s=%s\n' "$2" "$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')" >> "$1")
 }
 
 # Turns on the monitoring profile when the server has a Grafana admin password.
