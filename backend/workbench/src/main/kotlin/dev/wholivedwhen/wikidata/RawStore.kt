@@ -14,10 +14,13 @@ import java.time.ZoneOffset
 import javax.sql.DataSource
 
 /** The steps of an import, in order. */
-enum class ImportPhase { DISCOVER, PEOPLE, LINKED, DONE }
+enum class ImportPhase { DISCOVER, PEOPLE, LINKED, CLASSES, DONE }
 
-/** The entities an import fetches: people first, then what their claims link to. */
-enum class EntityKind { PEOPLE, LINKED }
+/**
+ * The entities an import fetches: people first, then what their claims link to, then the classes their occupations
+ * belong to, one level above another.
+ */
+enum class EntityKind { PEOPLE, LINKED, CLASSES }
 
 data class ImportRun(val id: Long, val startedAt: Instant, val phase: ImportPhase, val notBefore: Instant?) {
     val started: LocalDate get() = startedAt.atOffset(ZoneOffset.UTC).toLocalDate()
@@ -41,11 +44,44 @@ class RawStore(dataSource: DataSource, private val transactions: TransactionTemp
 
     private val jdbc = JdbcTemplate(dataSource)
 
+    // Reads the people a few hundred at a time rather than all at once: tens of thousands of entities do not fit in memory.
+    private val streaming = JdbcTemplate(dataSource).apply { fetchSize = 500 }
+
     init {
         Flyway.configure().dataSource(dataSource).locations("classpath:db/raw")
             .schemas(SCHEMA).defaultSchema(SCHEMA).createSchemas(true)
             .load().migrate()
     }
+
+    /** The last import that finished, if any. */
+    fun lastFinishedRun(): ImportRun? =
+        jdbc.query("select * from raw.import_run where finished_at is not null order by id desc limit 1", ::toRun).firstOrNull()
+
+    /**
+     * The people [run] discovered, in Q-id order, each with their sitelinks and their entity's JSON, cut down to its id,
+     * labels, sitelinks and the statements of [properties]. Streamed, so it must run in a transaction: Postgres only
+     * reads a few rows at a time inside one.
+     */
+    fun people(run: ImportRun, properties: List<String>, each: (sitelinks: Int, json: String) -> Unit) {
+        streaming.query(
+            """
+            select d.sitelinks, jsonb_strip_nulls(jsonb_build_object(
+                'id', e.json -> 'id', 'labels', e.json -> 'labels', 'sitelinks', e.json -> 'sitelinks',
+                'claims', (select jsonb_object_agg(key, value) from jsonb_each(e.json -> 'claims') where key = any (?))
+            ))::text
+            from raw.discovered d
+            join raw.entity e on e.qid = d.qid
+            where d.seen_at >= ?
+            order by d.qid
+            """.trimIndent(),
+            { rs -> each(rs.getInt(1), rs.getString(2)) },
+            properties.toTypedArray(), run.startedAt.utc(),
+        )
+    }
+
+    /** The JSON of those of [ids] stored, in no particular order. */
+    fun entities(ids: Collection<String>): List<String> =
+        jdbc.query("select json::text from raw.entity where qid = any (?)", { rs, _ -> rs.getString(1) }, ids.toTypedArray())
 
     /** The import that has not finished, if one stopped half way, else a new one. */
     fun currentRun(): ImportRun =
@@ -128,6 +164,48 @@ class RawStore(dataSource: DataSource, private val transactions: TransactionTemp
             EntityKind.LINKED.name, properties.joinToString(","), run.id, EntityKind.PEOPLE.name,
         )
         phase(run, ImportPhase.LINKED)
+    }
+
+    /** The places and occupations are fetched: the classes above the occupations are next. */
+    fun startClasses(run: ImportRun) = phase(run, ImportPhase.CLASSES)
+
+    /** The highest level of classes this run has queued, 0 before the first. */
+    fun classLevel(run: ImportRun): Int =
+        jdbc.queryForObject(
+            "select coalesce(max(level), 0) from raw.import_item where run_id = ? and kind = ?",
+            Int::class.java, run.id, EntityKind.CLASSES.name,
+        )!!
+
+    /**
+     * Queues the classes (P279) of the entities one level below [level]: the people's occupations (P106) for the
+     * first level, the classes queued at the level before for the next ones. An entity is queued once a run, whatever
+     * its kind, so a class reached twice, or a loop of classes, is fetched once. Returns how many were queued.
+     */
+    fun queueClasses(run: ImportRun, level: Int): Int {
+        val (below, belowArgs) = if (level == 1) {
+            """
+            select claim -> 'mainsnak' -> 'datavalue' -> 'value' ->> 'id' as qid
+            from raw.import_item i
+            join raw.entity e on e.qid = i.qid
+            cross join jsonb_array_elements(coalesce(e.json -> 'claims' -> 'P106', '[]')) as claim
+            where i.run_id = ? and i.kind = ? and claim -> 'mainsnak' ->> 'snaktype' = 'value'
+            """ to arrayOf<Any>(run.id, EntityKind.PEOPLE.name)
+        } else {
+            "select qid from raw.import_item where run_id = ? and kind = ? and level = ?" to
+                arrayOf<Any>(run.id, EntityKind.CLASSES.name, level - 1)
+        }
+        return jdbc.update(
+            """
+            insert into raw.import_item (run_id, qid, kind, level)
+            select distinct ?, claim -> 'mainsnak' -> 'datavalue' -> 'value' ->> 'id', ?, ?
+            from ($below) b
+            join raw.entity e on e.qid = b.qid
+            cross join jsonb_array_elements(coalesce(e.json -> 'claims' -> 'P279', '[]')) as claim
+            where claim -> 'mainsnak' ->> 'snaktype' = 'value'
+            on conflict do nothing
+            """.trimIndent(),
+            run.id, EntityKind.CLASSES.name, level, *belowArgs,
+        )
     }
 
     fun finish(run: ImportRun) {

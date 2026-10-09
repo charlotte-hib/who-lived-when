@@ -29,6 +29,8 @@ data class WikidataProperties(
     val sites: List<String>,
     /** The properties whose values are fetched too: places of birth, death, work and residence, and occupations. */
     val linkedProperties: List<String>,
+    /** How many levels of classes (P279) above the occupations are fetched too. */
+    val classLevels: Int,
     /** How many times in a row the import resumes by itself, without progress, when Wikimedia keeps asking to wait. */
     val restarts: Int,
     /** How long it pauses first, on top of any `Retry-After`. */

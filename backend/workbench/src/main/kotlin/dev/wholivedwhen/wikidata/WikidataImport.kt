@@ -16,8 +16,9 @@ import kotlin.system.exitProcess
 
 /**
  * Fetches Wikidata's people into the workbench's `raw` schema: discovery (who is above the cut-off), then each
- * person's entity, then the places and occupations their claims point to. Entities already stored are only fetched
- * again when their revision has changed, so running it again a month later refreshes the cache cheaply.
+ * person's entity, then the places and occupations their claims point to, then the classes above those occupations,
+ * through which they map to the site's domains. Entities already stored are only fetched again when their revision
+ * has changed, so running it again a month later refreshes the cache cheaply.
  *
  * Every request goes through [WikimediaClient]'s shared pace. Progress is in the database: a run that stopped resumes
  * at the next slice or batch, and first waits out any `Retry-After` Wikimedia gave before it stopped.
@@ -87,6 +88,11 @@ class WikidataImport(
             }
             if (run.phase == ImportPhase.LINKED) {
                 fetchAll(run, EntityKind.LINKED)
+                store.startClasses(run)
+                run = store.findRun(run.id)
+            }
+            if (run.phase == ImportPhase.CLASSES) {
+                fetchClasses(run)
                 store.finish(run)
             }
         } finally {
@@ -103,6 +109,15 @@ class WikidataImport(
             store.saveBatch(run, fetch(kind, ids))
             done += ids.size
             if (done % PROGRESS_EVERY < ids.size) log.info("{}: {} entities checked or fetched", kind, done)
+        }
+    }
+
+    /** The classes above the occupations, one level after another, until the last level or no class is new. */
+    private fun fetchClasses(run: ImportRun) {
+        while (true) {
+            fetchAll(run, EntityKind.CLASSES)
+            val level = store.classLevel(run) + 1
+            if (level > properties.classLevels || store.queueClasses(run, level) == 0) return
         }
     }
 
@@ -131,7 +146,7 @@ class WikidataImport(
         if (wanted.isEmpty()) return EntityBatch(ids, requests, emptyList(), unchanged, missing)
         val entities = when (kind) {
             EntityKind.PEOPLE -> wikimedia.entities(wanted, PEOPLE_PROPS, properties.languages, properties.sites)
-            EntityKind.LINKED -> wikimedia.entities(wanted, LINKED_PROPS, properties.languages)
+            EntityKind.LINKED, EntityKind.CLASSES -> wikimedia.entities(wanted, LINKED_PROPS, properties.languages)
         }.path("entities")
         requests++
         val (gone, found) = wanted.partition { entities.path(it).isMissingNode || entities.path(it).has("missing") }
@@ -148,7 +163,10 @@ class WikidataImport(
     private companion object {
         /** A person's labels and aliases, statements and Wikipedia articles, and the revision. */
         val PEOPLE_PROPS = listOf("info", "labels", "aliases", "claims", "sitelinks")
-        /** A place's or an occupation's labels and statements (coordinates, country, the classes it belongs to). */
+        /**
+         * A place's, an occupation's or a class's labels and statements (coordinates, country, the classes it belongs
+         * to, the feminine form of an occupation).
+         */
         val LINKED_PROPS = listOf("info", "labels", "claims")
         const val PROGRESS_EVERY = 1000
     }
