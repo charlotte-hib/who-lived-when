@@ -690,7 +690,7 @@ components:
     LifeLine:
       description: One line of "their life in their time", a dated change around them, with their age.
       type: object
-      required: [year, age, kind, text, role]
+      required: [year, age, kind, text, role, era]
       properties:
         year:
           type: integer
@@ -705,6 +705,12 @@ components:
           type: string
         role:
           type: string
+          nullable: true
+        era:
+          description: The regime a BIRTH line was born under or an ERA line begins, to open; none on other lines.
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/Era"
           nullable: true
 
     Connection:
