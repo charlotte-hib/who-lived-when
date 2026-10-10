@@ -33,7 +33,8 @@ export function FeaturedStory({ stories, initialIndex }: Props) {
           {story.art && <ArtworkImage art={story.art} priority />}
         </motion.div>
       </AnimatePresence>
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
+      {/* On paper, a lighter wash keeps the painting vivid; phones keep more of it, as the text covers most of the painting. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent max-sm:via-background/65 dark:via-background/70 dark:to-background/30" />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 pt-32 pb-12">
         <p className="text-xs font-medium tracking-widest text-lamp uppercase">Featured story</p>
