@@ -1,3 +1,4 @@
+import { EraButton } from "@/components/era-panel";
 import type { LifeLine } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatYear } from "@/lib/years";
@@ -10,7 +11,10 @@ const TEXT_STYLE: Record<LifeLine["kind"], string> = {
   DEATH: "text-foreground",
 };
 
-/** "Their life in their time": each change around them, with their age. Built by the API from dated records. */
+/**
+ * "Their life in their time": each change around them, with their age. Built by the API from dated records.
+ * The regime they were born under and each new one open in a panel.
+ */
 export function LifeInTime({ lines }: { lines: LifeLine[] }) {
   return (
     <div>
@@ -27,7 +31,7 @@ export function LifeInTime({ lines }: { lines: LifeLine[] }) {
               {line.age !== null && <span className="sr-only"> years old</span>}
             </span>
             <span className={cn(TEXT_STYLE[line.kind])}>
-              {line.text}
+              {line.era ? <EraButton era={line.era} className="text-left text-inherit">{line.text}</EraButton> : line.text}
               {line.role && <span className="block text-xs font-normal text-arts">{line.role}</span>}
             </span>
           </li>

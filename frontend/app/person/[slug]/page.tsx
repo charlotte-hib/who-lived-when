@@ -1,3 +1,5 @@
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Connections } from "@/components/connections";
 import { DoorCard } from "@/components/door-card";
@@ -33,7 +35,20 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/p
         <PersonAbout detail={detail} />
 
         {detail.world && detail.worldMoment && (
-          <Section title={`The world around them · ${detail.worldMoment.place}, ${detail.worldMoment.period}`}>
+          <Section
+            title={
+              <>
+                The world around them ·{" "}
+                <Link
+                  href={`/moment/${detail.worldMoment.id}`}
+                  className="inline-flex items-center gap-1 text-lamp underline decoration-lamp/40 underline-offset-4 hover:decoration-lamp"
+                >
+                  {detail.worldMoment.place}, {detail.worldMoment.period}
+                  <ArrowRight aria-hidden className="size-3" />
+                </Link>
+              </>
+            }
+          >
             <div className="rounded-2xl border bg-card/40 p-5">
               <WorldAround world={detail.world} compact />
             </div>
