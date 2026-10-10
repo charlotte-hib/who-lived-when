@@ -37,6 +37,8 @@ import kotlin.test.assertTrue
         "app.wikimedia.wikipedia-api=\${wikimedia.base-url}/{language}/w/api.php",
         "app.wikimedia.wikidata-sparql=\${wikimedia.base-url}/sparql",
         "app.wikimedia.default-retry-wait=200ms",
+        // Shorter than the slow answers below, which arrive all the same: the client has a read timeout of its own.
+        "spring.http.clients.read-timeout=100ms",
     ],
 )
 @EnableWireMock(

@@ -30,6 +30,8 @@ data class WikimediaProperties(
     val wikidataSparql: String,
     /** How long a SPARQL query may take: the query service stops each one after 60 seconds. */
     val sparqlTimeout: Duration,
+    /** How long an Action API answer may take to arrive in full: 50 people's entities run to megabytes. */
+    val readTimeout: Duration,
     /** Wikimedia asks API clients for a contact in the User-Agent. */
     val userAgent: String,
     /** Seconds of replication lag past which the servers answer with the `maxlag` error rather than work. */
@@ -80,6 +82,7 @@ class WikimediaClient(
 ) {
 
     private val restClient = builder.clone()
+        .requestFactory(requestFactories.build(clientSettings.withReadTimeout(properties.readTimeout)))
         .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent)
         .defaultStatusHandler({ it == HttpStatus.TOO_MANY_REQUESTS }) { _, response -> throw busy("HTTP 429", response.headers) }
         .defaultStatusHandler({ it in UNAVAILABLE }) { _, response -> throw busy("HTTP ${response.statusCode.value()}", response.headers) }

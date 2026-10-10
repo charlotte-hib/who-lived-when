@@ -41,8 +41,11 @@ class WikidataImport(
     private var current: ImportRun? = null
 
     init {
-        // Each retry is another request, after Wikimedia asked to wait.
-        retries.retry(WikimediaClient.PACE).eventPublisher.onRetry { event -> current?.let { store.busy(it, event.waitInterval) } }
+        // Each retry is another request, after Wikimedia asked to wait or could not answer.
+        retries.retry(WikimediaClient.PACE).eventPublisher.onRetry { event ->
+            log.info("Wikimedia: {}. Trying again in {}", event.lastThrowable?.message, event.waitInterval)
+            current?.let { store.busy(it, event.waitInterval) }
+        }
     }
 
     fun run(): ImportRun {
