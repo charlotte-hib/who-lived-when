@@ -127,6 +127,8 @@ ijhttp --env-file http/http-client.env.json --env local http/api.http
 
 CI runs the same file against the backend image, with its database (the "API tests" job), never against production.
 
+`http/production.http` is the only file that runs against the live site: read-only GETs through its public address (the HTTP to HTTPS redirect, the home page, a story and a person found from it, the public API paths, a 404), checking shapes rather than data, so curated releases never break it. `.github/workflows/smoke.yml` runs it after each deploy and every day, with a check that the TLS certificate is valid for 10 more days. The address comes from the repository variable `SITE_URL`. It never sends visitor events.
+
 ## Metrics
 
 Two Grafana dashboards, provisioned from `monitoring/`: **Visitors** (page views, stories started and finished, the card where readers stop, people opened in a panel or on their full page and from where, searches) and **Service** (requests, p95 latency, 5xx, JVM memory, CPU, GC).
