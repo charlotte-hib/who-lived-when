@@ -2,17 +2,11 @@ package dev.wholivedwhen.wikidata
 
 import io.github.resilience4j.retry.RetryRegistry
 import org.slf4j.LoggerFactory
-import org.springframework.boot.CommandLineRunner
-import org.springframework.boot.SpringApplication
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty
-import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import dev.wholivedwhen.wikimedia.WikimediaBusyException
 import dev.wholivedwhen.wikimedia.WikimediaClient
 import java.time.Duration
 import java.time.Instant
-import kotlin.system.exitProcess
 
 /**
  * Fetches Wikidata's people into the workbench's `raw` schema: discovery (who is above the cut-off), then each
@@ -169,24 +163,5 @@ class WikidataImport(
          */
         val LINKED_PROPS = listOf("info", "labels", "claims")
         const val PROGRESS_EVERY = 1000
-    }
-}
-
-/**
- * Runs the Wikidata import, or resumes the one that stopped, then exits:
- * `./gradlew :workbench:bootRun --args='--app.wikidata.import=true --app.wikipedia.enrich=false'`. Enrichment off:
- * it calls Wikipedia on its own, outside the shared pace.
- */
-@Component
-@Order(3)
-@ConditionalOnBooleanProperty("app.wikidata.import")
-class WikidataImportJob(
-    private val wikidataImport: WikidataImport,
-    private val context: ConfigurableApplicationContext,
-) : CommandLineRunner {
-
-    override fun run(vararg args: String) {
-        wikidataImport.run()
-        exitProcess(SpringApplication.exit(context))
     }
 }

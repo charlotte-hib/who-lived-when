@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# wb: the workbench's command line. Starts runs on the workbench (./gradlew :workbench:bootRun, in backend/) and follows
+# them, or shows what waits for review. Sends the token the workbench wrote on its last start.
+set -euo pipefail
+
+url="${WB_URL:-http://localhost:8090}"
+token_file="${WB_TOKEN_FILE:-$HOME/.config/who-lived-when/workbench-token}"
+
+usage() {
+  cat <<'EOF'
+Usage: wb <command>
+
+  import          fetch Wikidata's people, or resume the import that stopped (hours)
+  map             map the last finished import to the dataset's rows
+  claims          propose the facts of the people of the release's moments for review
+  draft <moment>  draft a moment's story with Claude, into backend/drafts/
+  runs [id]       the runs since the workbench started, or one of them
+  queues          how many claims wait for review, by type and flag
+
+A run is followed until it ends; Ctrl-C stops following, not the run.
+EOF
+}
+
+api() {
+  local method="$1" path="$2" body="${3:-}"
+  [[ -r "$token_file" ]] || { echo "wb: no token in $token_file. Is the workbench running?" >&2; exit 1; }
+  local args=(--silent --show-error --write-out '\n%{http_code}' --request "$method"
+    --header "Authorization: Bearer $(<"$token_file")")
+  [[ -n "$body" ]] && args+=(--header 'Content-Type: application/json' --data "$body")
+  local response
+  response="$(curl "${args[@]}" "$url$path")" || { echo "wb: the workbench does not answer at $url" >&2; exit 1; }
+  local status="${response##*$'\n'}"
+  response="${response%$'\n'*}"
+  if [[ "$status" -ge 400 ]]; then
+    echo "wb: $status $(json "$response" "d.get('detail') or d.get('title') or ''" 2>/dev/null || true)" >&2
+    exit 1
+  fi
+  printf '%s' "$response"
+}
+
+# Evaluates a Python expression on the JSON document $1, bound to d.
+json() {
+  python3 -I -c 'import json, sys; d = json.loads(sys.argv[1]); print(eval(sys.argv[2]))' "$1" "$2"
+}
+
+show_run() {
+  json "$1" "f\"Run {d['id']}: {d['kind']}{' ' + d['moment'] if d.get('moment') else ''}, {d['status']}{': ' + d['result'] if d.get('result') else ''}\""
+}
+
+start() {
+  local run id
+  run="$(api POST /api/runs "$1")"
+  show_run "$run"
+  id="$(json "$run" "d['id']")"
+  while [[ "$(json "$run" "d['status']")" == RUNNING ]]; do
+    sleep 2
+    run="$(api GET "/api/runs/$id")"
+  done
+  show_run "$run"
+  [[ "$(json "$run" "d['status']")" == SUCCEEDED ]]
+}
+
+case "${1:-}" in
+  import) start '{"kind": "WIKIDATA_IMPORT"}' ;;
+  map) start '{"kind": "DATASET_MAPPING"}' ;;
+  claims) start '{"kind": "PERSON_FACTS_CLAIMS"}' ;;
+  draft)
+    [[ -n "${2:-}" ]] || { usage >&2; exit 2; }
+    start "{\"kind\": \"STORY_DRAFT\", \"moment\": \"$2\"}"
+    ;;
+  runs)
+    if [[ -n "${2:-}" ]]; then
+      show_run "$(api GET "/api/runs/$2")"
+    else
+      json "$(api GET /api/runs)" "'\n'.join(f\"{r['id']}  {r['kind']}  {r['status']}  {r.get('result') or ''}\" for r in d) or 'No run yet'"
+    fi
+    ;;
+  queues)
+    json "$(api GET /api/queues)" "'\n'.join(f\"{q['type']}: {q['candidates']} waiting, {q['needsWork']} kept for later\" + ''.join(f\"\n  {f}: {n}\" for f, n in q['flags'].items()) for q in d) or 'Nothing waits'"
+    ;;
+  ""|-h|--help|help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

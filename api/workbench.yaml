@@ -1,0 +1,723 @@
+openapi: 3.0.3
+info:
+  title: Who Lived When workbench API
+  version: 1.0.0
+  description: |
+    The curator's workbench, on the Mac only: claims (anything a careful reader could dispute) with their sources and
+    the curator's decisions, and the runs that fetch, map and propose.
+
+    It listens on 127.0.0.1 only and answers only requests addressed to `localhost` or `127.0.0.1`. Every request
+    needs the token the workbench writes on each start to `~/.config/who-lived-when/workbench-token`.
+
+    People are Wikidata ids (Q-ids). Years are integers, negative for BCE. There is no year 0: 1 BCE is followed by
+    1 CE.
+  license:
+    name: MIT
+    url: https://github.com/charlotte-hib/who-lived-when/blob/main/LICENSE
+servers:
+  - url: http://localhost:8090
+    description: The workbench on the curator's Mac.
+security:
+  - token: []
+tags:
+  - name: claims
+    description: What the curator approves, edits or rejects, with its sources and the decisions taken.
+  - name: runs
+    description: Imports, mappings, proposals and drafts, one at a time, in the background.
+
+paths:
+  /api/queues:
+    get:
+      tags: [claims]
+      operationId: listQueues
+      summary: Waiting claims, per type
+      description: How many claims of each type wait for the curator, and how many of them carry each flag.
+      responses:
+        "200":
+          description: One queue per claim type that has claims, by type.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Queue"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/claims:
+    get:
+      tags: [claims]
+      operationId: listClaims
+      summary: Claims
+      description: Claims in the order they were proposed, a page at a time.
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/ClaimType"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ClaimStatus"
+        - name: flag
+          in: query
+          schema:
+            $ref: "#/components/schemas/Flag"
+        - name: after
+          in: query
+          description: The `seq` of the last claim of the previous page.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: The claims after `after`, at most `limit` of them.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Claim"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [claims]
+      operationId: addClaim
+      summary: Add a claim by hand
+      description: |
+        A connection, an event or an anecdote the curator found, from a podcast, a book or anywhere else, with at least
+        one source. Its id comes from what it is about: proposing the same thing again answers 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewClaim"
+      responses:
+        "201":
+          description: The claim, waiting for review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/claims/{id}:
+    get:
+      tags: [claims]
+      operationId: getClaim
+      summary: A claim
+      description: A claim with its sources and every decision taken on it.
+      parameters:
+        - $ref: "#/components/parameters/ClaimId"
+      responses:
+        "200":
+          description: The claim.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/claims/{id}/decisions:
+    post:
+      tags: [claims]
+      operationId: decide
+      summary: Decide on a claim
+      description: |
+        Approve (with an edited payload, if given), reject, or keep for later. A rejection and keeping for later need a
+        note saying why. The decision is logged with the payload before and after.
+      parameters:
+        - $ref: "#/components/parameters/ClaimId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewDecision"
+      responses:
+        "200":
+          description: The claim after the decision.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/claims/{id}/undo:
+    post:
+      tags: [claims]
+      operationId: undo
+      summary: Undo the last decision
+      description: Puts back the status and payload from before the curator's last decision on this claim, and logs it.
+      parameters:
+        - $ref: "#/components/parameters/ClaimId"
+      responses:
+        "200":
+          description: The claim as it was before that decision.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/runs:
+    get:
+      tags: [runs]
+      operationId: listRuns
+      summary: Runs since the workbench started
+      responses:
+        "200":
+          description: The runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Run"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [runs]
+      operationId: startRun
+      summary: Start a run
+      description: Starts the run in the background. Only one runs at a time.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewRun"
+      responses:
+        "202":
+          description: The run, started.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/runs/{id}:
+    get:
+      tags: [runs]
+      operationId: getRun
+      summary: A run
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The run.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    token:
+      type: http
+      scheme: bearer
+      description: The token in `~/.config/who-lived-when/workbench-token`, new on every start.
+
+  parameters:
+    ClaimId:
+      name: id
+      in: path
+      required: true
+      description: The claim's id, URL-encoded, e.g. `person-facts:Q535`.
+      schema:
+        type: string
+        maxLength: 200
+
+  responses:
+    BadRequest:
+      description: The request does not match the contract, or the claim does not hold together.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Unauthorized:
+      description: No token, or not the workbench's current one.
+    NotFound:
+      description: Nothing has this id.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    Conflict:
+      description: The claim already exists, there is nothing to undo, or a run is already running.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+
+  schemas:
+    ClaimType:
+      type: string
+      description: |
+        `PERSON_FACTS`: a person's facts as fetched, one claim per person. `CONNECTION`: two people linked at a date.
+        `EVENT`: something that happened in a region in a year. `ANECDOTE`: a short story about one person.
+      enum: [PERSON_FACTS, CONNECTION, EVENT, ANECDOTE]
+
+    ClaimStatus:
+      type: string
+      description: |
+        `CANDIDATE` waits for review; `NEEDS_WORK` was kept for later, with a note.
+      enum: [CANDIDATE, APPROVED, REJECTED, NEEDS_WORK]
+
+    Origin:
+      type: string
+      enum: [WIKIDATA, BOOK, CLAUDE, MANUAL]
+
+    Flag:
+      type: string
+      description: Why a claim needs a person's eye, whatever the error rate of its kind.
+      enum: [POORLY_DOCUMENTED, CONFLICT, ODD, SENSITIVE, SINGLE_SOURCE]
+
+    FlagReason:
+      type: object
+      required: [flag, reason]
+      properties:
+        flag:
+          $ref: "#/components/schemas/Flag"
+        reason:
+          type: string
+          example: BIRTH_UNREFERENCED
+
+    Queue:
+      type: object
+      required: [type, candidates, needsWork, flags]
+      properties:
+        type:
+          $ref: "#/components/schemas/ClaimType"
+        candidates:
+          type: integer
+          description: Claims waiting for review.
+        needsWork:
+          type: integer
+          description: Claims kept for later.
+        flags:
+          type: object
+          description: How many of the waiting claims carry each flag.
+          additionalProperties:
+            type: integer
+
+    Claim:
+      type: object
+      required: [id, seq, type, status, origin, flags, payload]
+      properties:
+        id:
+          type: string
+          example: person-facts:Q535
+        seq:
+          type: integer
+          format: int64
+          description: The order claims were proposed in.
+        type:
+          $ref: "#/components/schemas/ClaimType"
+        status:
+          $ref: "#/components/schemas/ClaimStatus"
+        origin:
+          $ref: "#/components/schemas/Origin"
+        flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlagReason"
+        payload:
+          $ref: "#/components/schemas/Payload"
+
+    ClaimDetail:
+      allOf:
+        - $ref: "#/components/schemas/Claim"
+        - type: object
+          required: [proposal, sources, decisions]
+          properties:
+            proposal:
+              description: The payload as last proposed, before any edit by the curator.
+              allOf:
+                - $ref: "#/components/schemas/Payload"
+            sources:
+              type: array
+              items:
+                $ref: "#/components/schemas/Source"
+            decisions:
+              type: array
+              description: Oldest first.
+              items:
+                $ref: "#/components/schemas/Decision"
+
+    NewClaim:
+      type: object
+      required: [payload, sources]
+      properties:
+        payload:
+          $ref: "#/components/schemas/Payload"
+        sources:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/Source"
+        note:
+          type: string
+          maxLength: 2000
+
+    Payload:
+      description: The record as it would ship, by claim type.
+      oneOf:
+        - $ref: "#/components/schemas/PersonFacts"
+        - $ref: "#/components/schemas/Connection"
+        - $ref: "#/components/schemas/Event"
+        - $ref: "#/components/schemas/Anecdote"
+      discriminator:
+        propertyName: type
+        mapping:
+          PERSON_FACTS: "#/components/schemas/PersonFacts"
+          CONNECTION: "#/components/schemas/Connection"
+          EVENT: "#/components/schemas/Event"
+          ANECDOTE: "#/components/schemas/Anecdote"
+
+    PersonFacts:
+      type: object
+      description: |
+        A person's facts as Wikidata states them. Whether each statement has a reference shows in the claim's flags,
+        not here: a reference added later does not change the facts.
+      required: [type, person, label, born, bornPrecision, died, diedEstimated, datesApproximate, occupations, places]
+      properties:
+        type:
+          type: string
+        person:
+          $ref: "#/components/schemas/Qid"
+        label:
+          type: string
+        labelFr:
+          type: string
+        born:
+          $ref: "#/components/schemas/Year"
+        bornPrecision:
+          type: integer
+          description: Wikidata's precision. 9 a year, 8 a decade, 7 a century, 10 and 11 a month and a day.
+        died:
+          $ref: "#/components/schemas/Year"
+        diedPrecision:
+          type: integer
+          description: None when the year of death is estimated.
+        diedEstimated:
+          type: boolean
+        datesApproximate:
+          type: boolean
+        enwiki:
+          type: string
+          description: The English Wikipedia article's title.
+        frwiki:
+          type: string
+        occupations:
+          type: array
+          description: In Wikidata's order, best rank first. The site shows the first.
+          items:
+            $ref: "#/components/schemas/Occupation"
+        places:
+          type: array
+          items:
+            $ref: "#/components/schemas/Place"
+
+    Occupation:
+      type: object
+      required: [occupation, label]
+      properties:
+        occupation:
+          $ref: "#/components/schemas/Qid"
+        label:
+          type: string
+        labelFr:
+          type: string
+
+    Place:
+      type: object
+      required: [role, place, label]
+      properties:
+        role:
+          type: string
+          enum: [BIRTH, DEATH, WORK, RESIDENCE]
+        place:
+          $ref: "#/components/schemas/Qid"
+        label:
+          type: string
+        country:
+          type: string
+          description: The ISO code of the country it lies in today.
+          example: FR
+        startYear:
+          $ref: "#/components/schemas/Year"
+        endYear:
+          $ref: "#/components/schemas/Year"
+
+    Connection:
+      type: object
+      description: Two people linked at a date, in one plain sentence.
+      required: [type, people, kind, year, text]
+      properties:
+        type:
+          type: string
+        people:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: "#/components/schemas/Qid"
+        kind:
+          type: string
+          minLength: 1
+          maxLength: 60
+          example: sculptor and subject
+        year:
+          $ref: "#/components/schemas/Year"
+        text:
+          type: string
+          minLength: 1
+          maxLength: 250
+
+    Event:
+      type: object
+      description: Something that happened in a region in a year.
+      required: [type, region, year, title, description, participants]
+      properties:
+        type:
+          type: string
+        region:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          example: FR
+        year:
+          $ref: "#/components/schemas/Year"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          minLength: 1
+          maxLength: 400
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participant"
+
+    Participant:
+      type: object
+      required: [person, role]
+      properties:
+        person:
+          $ref: "#/components/schemas/Qid"
+        role:
+          type: string
+          minLength: 1
+          maxLength: 60
+
+    Anecdote:
+      type: object
+      description: A short story about one person, at a date.
+      required: [type, person, year, text]
+      properties:
+        type:
+          type: string
+        person:
+          $ref: "#/components/schemas/Qid"
+        year:
+          $ref: "#/components/schemas/Year"
+        text:
+          type: string
+          minLength: 1
+          maxLength: 400
+
+    Source:
+      type: object
+      description: |
+        What a claim rests on. `WIKIDATA`: an entity (`entity`, `revision`). `WIKIPEDIA`: an article (`language`,
+        `title`, `revision`). `BOOK`: `title` and `page`. `WEB`: `url`. `MEDIA`: a podcast, a video or a documentary
+        (`title`, `episode`, `minute`, `url`).
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [WIKIDATA, WIKIPEDIA, BOOK, WEB, MEDIA]
+        entity:
+          $ref: "#/components/schemas/Qid"
+        revision:
+          type: integer
+          format: int64
+        language:
+          type: string
+          pattern: "^[a-z]{2,3}$"
+        title:
+          type: string
+          maxLength: 300
+        page:
+          type: string
+          maxLength: 20
+        episode:
+          type: string
+          maxLength: 300
+        minute:
+          type: string
+          pattern: "^\\d{1,3}:\\d{2}(:\\d{2})?$"
+          example: "12:40"
+        url:
+          type: string
+          pattern: "^https?://.+$"
+          maxLength: 2000
+        quote:
+          type: string
+          maxLength: 2000
+          description: The passage the claim rests on.
+
+    NewDecision:
+      type: object
+      required: [action]
+      properties:
+        action:
+          type: string
+          enum: [APPROVE, REJECT, NEEDS_WORK]
+        payload:
+          description: The edited record, to approve instead of the current one.
+          allOf:
+            - $ref: "#/components/schemas/Payload"
+        note:
+          type: string
+          maxLength: 2000
+
+    Decision:
+      type: object
+      required: [by, to, decidedAt]
+      properties:
+        by:
+          type: string
+          description: Who decided. `curator`, or `rule` when the workbench proposed or refreshed the claim.
+          example: curator
+        from:
+          $ref: "#/components/schemas/ClaimStatus"
+        to:
+          $ref: "#/components/schemas/ClaimStatus"
+        edited:
+          type: boolean
+          description: Whether the payload changed.
+        note:
+          type: string
+        decidedAt:
+          type: string
+          format: date-time
+
+    NewRun:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          $ref: "#/components/schemas/RunKind"
+        moment:
+          type: string
+          description: The moment to draft, for `STORY_DRAFT`.
+          pattern: "^[a-z0-9-]+$"
+          maxLength: 100
+
+    RunKind:
+      type: string
+      description: |
+        `WIKIDATA_IMPORT` fetches Wikidata's people, or resumes the import that stopped. `DATASET_MAPPING` maps the last
+        finished import to the dataset's rows. `PERSON_FACTS_CLAIMS` proposes the facts of the people of the
+        release's moments. `STORY_DRAFT` drafts a moment's story with Claude into `backend/drafts/`.
+      enum: [WIKIDATA_IMPORT, DATASET_MAPPING, PERSON_FACTS_CLAIMS, STORY_DRAFT]
+
+    Run:
+      type: object
+      required: [id, kind, status, startedAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          $ref: "#/components/schemas/RunKind"
+        moment:
+          type: string
+        status:
+          type: string
+          enum: [RUNNING, SUCCEEDED, FAILED]
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+        result:
+          type: string
+          description: What it came to, or why it failed.
+
+    Qid:
+      type: string
+      pattern: "^Q[1-9][0-9]*$"
+      example: Q535
+
+    Year:
+      type: integer
+      description: Negative for BCE. There is no year 0.
+      format: int32
+      minimum: -3500
+      maximum: 2100
+
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details.
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

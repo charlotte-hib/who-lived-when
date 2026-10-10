@@ -37,7 +37,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Lint the API contract
-        run: npx --yes @redocly/cli@2.54.2 lint ../api/openapi.yaml --config ../api/redocly.yaml
+        run: npx --yes @redocly/cli@2.54.2 lint ../api/openapi.yaml ../api/workbench.yaml --config ../api/redocly.yaml
       - run: ./gradlew test
 
   frontend:

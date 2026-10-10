@@ -1,15 +1,20 @@
 spring:
   application:
     name: workbench
-  main:
-    # A command-line app for now: it loads the release, does what it was asked and exits.
-    web-application-type: none
+  jackson:
+    # Optional fields are left out rather than sent as null, as the contract describes them.
+    default-property-inclusion: non_null
+  mvc:
+    # Errors as RFC 9457 Problem Details: application/problem+json, described in api/workbench.yaml.
+    problemdetails:
+      enabled: true
   threads:
     virtual:
       enabled: true
   # Postgres: on ./gradlew :workbench:bootRun, Spring Boot's Docker Compose support starts it (compose.workbench.yaml,
   # at the repository's root) and connects to it; tests run their own.
   jpa:
+    open-in-view: false
     hibernate:
       # Flyway creates the schema from core's db/migration; Hibernate only checks the entities match it.
       ddl-auto: validate
@@ -24,10 +29,18 @@ spring:
       connect-timeout: 5s
       read-timeout: 5s
 
+# On the curator's Mac only, never on the network: wb and curate call it there.
+server:
+  address: 127.0.0.1
+  port: 8090
+
 app:
+  workbench:
+    token-file: ${user.home}/.config/who-lived-when/workbench-token
+  curation:
+    # The people of each moment whose facts are proposed for review (wb claims), the best known first.
+    people-per-moment: 50
   drafting:
-    # Set to a moment id (e.g. --app.drafting.moment=edo-1830s) to draft its story with Claude and exit.
-    moment:
     model: claude-opus-5-5
     output-dir: drafts
   wikipedia:
@@ -47,8 +60,6 @@ app:
     default-retry-wait: 5s
     max-retry-wait: 2m
   wikidata:
-    # Set to true to run the import (or resume the one that stopped), then exit (WikidataImportJob).
-    import: false
     # 3500 BCE, in the query service's astronomical years (0 is 1 BCE).
     born-from: -3499
     # 25 sitelinks, or 10 for people born before 1800.
@@ -76,10 +87,6 @@ app:
     # The import then resumes by itself after a pause: about an hour of such lag in a row before it gives up.
     restarts: 12
     restart-pause: 5m
-  dataset:
-    # Set to true to map what the last import fetched to the fetched dataset's rows (schema dataset), then exit
-    # (DatasetMappingJob).
-    map: false
   # Natural Earth's public-domain borders, de facto, at 1:10m: which country a place lies in today, and whether it lies
   # in a disputed area. Downloaded by the first mapping run, kept in dir (under backend/, ignored by Git).
   natural-earth:

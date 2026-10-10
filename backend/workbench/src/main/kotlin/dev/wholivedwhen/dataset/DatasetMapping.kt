@@ -1,11 +1,6 @@
 package dev.wholivedwhen.dataset
 
 import org.slf4j.LoggerFactory
-import org.springframework.boot.CommandLineRunner
-import org.springframework.boot.SpringApplication
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty
-import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.transaction.support.TransactionTemplate
 import tools.jackson.databind.json.JsonMapper
@@ -14,7 +9,6 @@ import dev.wholivedwhen.support.currentYear
 import dev.wholivedwhen.wikidata.ImportRun
 import dev.wholivedwhen.wikidata.RawStore
 import dev.wholivedwhen.wikidata.WikidataProperties
-import kotlin.system.exitProcess
 
 /** What a mapping run wrote, and whom it left out. */
 data class DatasetCounts(val people: Int, val leftOut: Map<LeftOut, Int>, val places: Int, val occupations: Int)
@@ -38,7 +32,7 @@ class DatasetMapping(
     private val log = LoggerFactory.getLogger(javaClass)
 
     fun map(): DatasetCounts {
-        val run = checkNotNull(raw.lastFinishedRun()) { "No import has finished yet: run one first (app.wikidata.import)" }
+        val run = checkNotNull(raw.lastFinishedRun()) { "No import has finished yet: run one first (wb import)" }
         val placeMapper = PlaceMapper(naturalEarth.borders())
         return transactions.execute { map(run, placeMapper) }!!
     }
@@ -106,23 +100,5 @@ class DatasetMapping(
         const val FEMALE_FORM = "P2521"
         const val SUBCLASS_OF = "P279"
         val OCCUPATION_PROPERTIES = listOf(FEMALE_FORM, SUBCLASS_OF)
-    }
-}
-
-/**
- * Maps what the workbench fetched to the fetched dataset's rows, then exits:
- * `./gradlew :workbench:bootRun --args='--app.dataset.map=true --app.wikipedia.enrich=false'`.
- */
-@Component
-@Order(4)
-@ConditionalOnBooleanProperty("app.dataset.map")
-class DatasetMappingJob(
-    private val mapping: DatasetMapping,
-    private val context: ConfigurableApplicationContext,
-) : CommandLineRunner {
-
-    override fun run(vararg args: String) {
-        mapping.map()
-        exitProcess(SpringApplication.exit(context))
     }
 }

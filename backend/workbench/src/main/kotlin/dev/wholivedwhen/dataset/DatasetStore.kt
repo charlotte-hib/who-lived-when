@@ -102,7 +102,95 @@ class DatasetStore(dataSource: DataSource) {
         )
     }
 
+    /**
+     * The people born in [region] (by their place of birth's country today) and alive at some point from [start] to
+     * [end], the [limit] best known first.
+     */
+    fun bornIn(region: String, start: Int, end: Int, limit: Int): List<String> =
+        jdbc.query(
+            """
+            select p.qid
+            from dataset.person p
+            join dataset.person_place pp on pp.person = p.qid and pp.property = 'P19' and pp.position = 0
+            join dataset.place pl on pl.qid = pp.place
+            where $PLACE_COUNTRY = ? and p.born <= ? and p.died >= ?
+            order by p.sitelinks desc, p.qid
+            limit ?
+            """.trimIndent(),
+            { rs, _ -> rs.getString(1) }, region, end, start, limit,
+        )
+
+    /** The rows of those of [qids] in the dataset, with their occupations, places and flags, in no particular order. */
+    fun people(qids: Collection<String>): List<DatasetPerson> {
+        val ids = qids.toTypedArray()
+        val occupations = jdbc.query(
+            """
+            select po.person, po.occupation, o.label, o.label_fr
+            from dataset.person_occupation po
+            left join dataset.occupation o on o.qid = po.occupation
+            where po.person = any (?)
+            order by po.person, po.position
+            """.trimIndent(),
+            { rs, _ ->
+                rs.getString(1) to DatasetOccupation(rs.getString(2), rs.getString(3), rs.getString(4))
+            },
+            ids,
+        ).groupBy({ it.first }, { it.second })
+        val places = jdbc.query(
+            """
+            select pp.person, pp.property, pp.place, pp.start_year, pp.end_year, pl.label, $PLACE_COUNTRY
+            from dataset.person_place pp
+            left join dataset.place pl on pl.qid = pp.place
+            where pp.person = any (?)
+            order by pp.person, array_position(array['P19', 'P20', 'P937', 'P551'], pp.property), pp.position
+            """.trimIndent(),
+            { rs, _ ->
+                rs.getString(1) to DatasetPlace(
+                    property = rs.getString(2), place = rs.getString(3), label = rs.getString(6), country = rs.getString(7),
+                    startYear = rs.getObject(4) as Int?, endYear = rs.getObject(5) as Int?,
+                )
+            },
+            ids,
+        ).groupBy({ it.first }, { it.second })
+        val flags = jdbc.query(
+            """
+            select person, flag, reason from dataset.person_flag where person = any (?)
+            union all
+            select pp.person, pf.flag, pp.property || '_' || pf.reason
+            from dataset.person_place pp
+            join dataset.place_flag pf on pf.place = pp.place
+            where pp.person = any (?)
+            order by 1, 2, 3
+            """.trimIndent(),
+            { rs, _ -> rs.getString(1) to (rs.getString(2) to rs.getString(3)) },
+            ids, ids,
+        ).groupBy({ it.first }, { it.second })
+        return jdbc.query("select * from dataset.person where qid = any (?)", { rs, _ ->
+            val qid = rs.getString("qid")
+            DatasetPerson(
+                qid = qid,
+                label = rs.getString("label"),
+                labelFr = rs.getString("label_fr"),
+                born = rs.getInt("born"),
+                bornPrecision = rs.getInt("born_precision"),
+                died = rs.getInt("died"),
+                diedPrecision = rs.getObject("died_precision") as Int?,
+                diedEstimated = rs.getBoolean("died_estimated"),
+                datesApproximate = rs.getBoolean("dates_approximate"),
+                enwiki = rs.getString("enwiki"),
+                frwiki = rs.getString("frwiki"),
+                occupations = occupations[qid].orEmpty(),
+                places = places[qid].orEmpty(),
+                flags = flags[qid].orEmpty().distinct(),
+            )
+        }, ids)
+    }
+
     private companion object {
         const val SCHEMA = "dataset"
+
+        /** The ISO code of the country a place lies in today: by its coordinates, else its first country with one. */
+        const val PLACE_COUNTRY = """coalesce(pl.coordinates_country,
+            (select pc.iso from dataset.place_country pc where pc.place = pl.qid and pc.iso is not null order by pc.position limit 1))"""
     }
 }
