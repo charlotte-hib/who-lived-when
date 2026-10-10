@@ -34,6 +34,11 @@ data class WikimediaProperties(
     val userAgent: String,
     /** Seconds of replication lag past which the servers answer with the `maxlag` error rather than work. */
     val maxlag: Int,
+    /**
+     * The same for Wikidata, whose lag also counts its query service catching up with edits: it slows down bots that
+     * edit, and reading does not add to it.
+     */
+    val wikidataMaxlag: Int,
     /** How long to wait when Wikimedia asks to retry later without saying how long, doubled at each attempt. */
     val defaultRetryWait: Duration,
     /** The longest wait the client accepts. Asked to wait longer, it gives up rather than retry any sooner. */
@@ -113,6 +118,7 @@ class WikimediaClient(
         return get(
             properties.wikidataApi,
             emptyMap(),
+            properties.wikidataMaxlag,
             mapOf(
                 "action" to "wbgetentities",
                 "ids" to ids.joinToString("|"),
@@ -155,6 +161,7 @@ class WikimediaClient(
         val answer = get(
             properties.wikipediaApi,
             mapOf("language" to language),
+            properties.maxlag,
             mapOf("action" to "query") + props + mapOf("titles" to titles.joinToString("|"), "redirects" to "1", "formatversion" to "2"),
         )
         // More pages than a module answers for at once: never with these batch sizes, and the rest would be missing.
@@ -180,8 +187,8 @@ class WikimediaClient(
         checkNotNull(response.body) { "Empty answer from ${properties.wikidataSparql}" }
     }
 
-    private fun get(api: String, apiVariables: Map<String, String>, parameters: Map<String, String>): JsonNode {
-        val query = parameters + mapOf("maxlag" to properties.maxlag.toString(), "format" to "json")
+    private fun get(api: String, apiVariables: Map<String, String>, maxlag: Int, parameters: Map<String, String>): JsonNode {
+        val query = parameters + mapOf("maxlag" to maxlag.toString(), "format" to "json")
         // Every value goes in as a URI variable, so the client encodes it: the pipes between ids, accents in titles.
         val uri = api + query.keys.joinToString("&", prefix = "?") { "$it={$it}" }
         return paced {

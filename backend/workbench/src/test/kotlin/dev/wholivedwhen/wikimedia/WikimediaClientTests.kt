@@ -84,7 +84,7 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
                 .withQueryParam("props", equalTo("info|labels|aliases|claims|sitelinks"))
                 .withQueryParam("languages", equalTo("en|fr|ja"))
                 .withQueryParam("sitefilter", equalTo("enwiki|frwiki"))
-                .withQueryParam("maxlag", equalTo("5"))
+                .withQueryParam("maxlag", equalTo("60"))
                 .withQueryParam("format", equalTo("json"))
                 .withHeader("User-Agent", containing("WhoLivedWhen/")),
         )

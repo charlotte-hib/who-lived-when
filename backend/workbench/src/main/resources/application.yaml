@@ -57,6 +57,9 @@ app:
     user-agent: ${app.wikipedia.user-agent}
     # Wikimedia's advice for bots: let the servers say no when they are more than 5 seconds behind.
     maxlag: 5
+    # Wikidata's lag also counts its query service catching up with edits, there to slow down bots that edit. It stayed
+    # from 10 to 19 s for over 20 minutes on 2026-10-10, refusing every read at 5. Still a wait when far behind.
+    wikidata-maxlag: 60
     # When Wikimedia gives no Retry-After, as on a 502: 5 s, then 10, 20, 40, 80 (resilience4j.retry, max-attempts).
     default-retry-wait: 5s
     max-retry-wait: 2m
