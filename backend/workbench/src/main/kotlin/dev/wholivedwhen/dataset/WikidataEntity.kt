@@ -16,6 +16,9 @@ data class WikidataEntity(
     /** The first of [languages] this entity has a label in. */
     fun label(vararg languages: String): String? = languages.firstNotNullOfOrNull { labels[it]?.value }
 
+    /** The first of [languages] this entity has a label in, else any label, else its Q-id. */
+    fun name(vararg languages: String): String = label(*languages) ?: labels.values.firstOrNull()?.value ?: id
+
     /** The statements of [property] in Wikidata's order, best rank first, without the deprecated ones. */
     fun statements(property: String): List<Statement> =
         claims[property].orEmpty().filter { it.rank != Rank.DEPRECATED }.sortedBy { it.rank }
@@ -75,12 +78,22 @@ data class Snak(val snaktype: String, val datavalue: DataValue? = null) {
     val time: WikidataTime?
         get() = value?.takeIf { it.has("time") }?.let { WikidataTime.of(it.path("time").asString(), it.path("precision").asInt()) }
 
+    /** A point on Earth. Null for one on another globe, such as a crater on the Moon. */
+    val coordinates: Coordinates?
+        get() = value?.takeIf { it.has("latitude") && it.path("globe").asString() == EARTH }
+            ?.let { Coordinates(it.path("latitude").asDouble(), it.path("longitude").asDouble()) }
+
     /** A text in one language, as `language` to `text`. */
     val text: Pair<String, String>?
         get() = value?.takeIf { it.has("text") }?.let { it.path("language").asString() to it.path("text").asString() }
 }
 
+private const val EARTH = "http://www.wikidata.org/entity/Q2"
+
 data class DataValue(val value: JsonNode)
+
+/** A point on Earth, in degrees. */
+data class Coordinates(val latitude: Double, val longitude: Double)
 
 /**
  * A point in time, as Wikidata writes it: `+1802-02-26T00:00:00Z` or `-0100-07-12T00:00:00Z`, with a precision. Years

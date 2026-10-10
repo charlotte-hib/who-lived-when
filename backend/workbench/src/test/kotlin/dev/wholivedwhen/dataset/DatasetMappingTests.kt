@@ -18,9 +18,17 @@ import kotlin.test.assertEquals
 
 /**
  * The mapping from `raw` to `dataset`, on what an import of the 28 people born from 2000 to 1901 BCE stored: the
- * responses recorded from Wikidata on 2026-10-09, put in `raw` as the import puts them.
+ * responses recorded from Wikidata on 2026-10-09, put in `raw` as the import puts them. Natural Earth's borders are
+ * the fixtures', already where the mapping keeps them.
  */
-@SpringBootTest(properties = ["app.wikipedia.enrich=false"])
+@SpringBootTest(
+    properties = [
+        "app.wikipedia.enrich=false",
+        "app.natural-earth.dir=${NaturalEarthFixtures.DIR}",
+        "app.natural-earth.countries.sha256=${NaturalEarthFixtures.COUNTRIES_SHA256}",
+        "app.natural-earth.disputed-areas.sha256=${NaturalEarthFixtures.DISPUTED_AREAS_SHA256}",
+    ],
+)
 @Import(PostgresTestConfiguration::class)
 class DatasetMappingTests(
     @Autowired private val mapping: DatasetMapping,
@@ -54,13 +62,13 @@ class DatasetMappingTests(
     private fun rows(sql: String) = jdbc.queryForList(sql).map { it.values.toList() }
 
     @Test
-    fun `maps every person the last import found, and their occupations`() {
+    fun `maps every person the last import found, their places and their occupations`() {
         importRecorded()
 
         val counts = mapping.map()
 
         // The 9 occupations and the classes above them, but for 2 of the 25 fetched, only reached through deprecated statements.
-        assertEquals(DatasetCounts(people = 28, leftOut = emptyMap(), occupations = 9 + 23), counts)
+        assertEquals(DatasetCounts(people = 28, leftOut = emptyMap(), places = 2, occupations = 9 + 23), counts)
         assertEquals(
             listOf<Any?>("Sobekneferu", "Néférousobek", 47, -1900, 7, -1793, 9, false, true, "Q6581072", "Sobekneferu", "Néférousobek"),
             rows(
@@ -79,6 +87,17 @@ class DatasetMappingTests(
         assertEquals(
             listOf("BIRTH_IMPRECISE", "BIRTH_UNREFERENCED", "DEATH_UNREFERENCED", "OCCUPATION_UNREFERENCED").map { listOf(it, "POORLY_DOCUMENTED") },
             rows("select reason, flag from dataset.person_flag where person = 'Q228951' order by reason"),
+        )
+        // Isin, where Damiq-ilishu died, lies in Iraq today, by its coordinates and by Wikidata.
+        assertEquals(
+            listOf<Any?>("Isin", "Isin", 31.93351249, 45.28520718, "IQ", null),
+            rows("select label, label_fr, latitude, longitude, coordinates_country, disputed_area from dataset.place where qid = 'Q501259'").single(),
+        )
+        assertEquals(listOf<Any?>(0, "Q796", "IQ"), rows("select position, country, iso from dataset.place_country where place = 'Q501259'").single())
+        assertEquals(0, jdbc.queryForObject("select count(*) from dataset.place_flag", Int::class.java))
+        assertEquals(
+            listOf("Q501259", "Q79"),
+            jdbc.queryForList("select qid from dataset.place order by qid", String::class.java),
         )
         assertEquals(
             listOf<Any?>("monarch", "monarque", null),

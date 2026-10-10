@@ -65,3 +65,30 @@ data class OccupationRow(
     /** The classes it belongs to, best rank first. */
     val parents: List<String>,
 )
+
+/** A place people were born, died, worked or lived in, and where it lies today. */
+data class PlaceRow(
+    val qid: String,
+    /** The English label, else the label shared by all languages, else any. */
+    val label: String,
+    val labelFr: String?,
+    /** Its coordinates (P625), best rank first. Ancient places often have none. */
+    val coordinates: Coordinates?,
+    /** The ISO code of the country its coordinates lie in today, by Natural Earth's borders, or lie just off. */
+    val coordinatesCountry: String?,
+    /** The disputed area its coordinates lie in, by Natural Earth, with who administers and claims it. */
+    val disputedArea: String?,
+    /** The countries Wikidata says it is in today (P17 with no end time), best rank first. */
+    val countries: List<PlaceCountry>,
+    val flags: Set<PlaceFlag>,
+)
+
+/** A country of a place's (P17), with the ISO code Natural Earth gives it. None for a state of the past. */
+data class PlaceCountry(val country: String, val iso: String?)
+
+/** Why a place needs a person's eye: the flag of the review policy, and the reason for it. */
+enum class PlaceFlag(val flag: String) {
+    DISPUTED_AREA(SENSITIVE),
+}
+
+private const val SENSITIVE = "SENSITIVE"

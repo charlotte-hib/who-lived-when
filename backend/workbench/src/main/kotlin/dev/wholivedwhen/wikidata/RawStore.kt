@@ -65,10 +65,7 @@ class RawStore(dataSource: DataSource, private val transactions: TransactionTemp
     fun people(run: ImportRun, properties: List<String>, each: (sitelinks: Int, json: String) -> Unit) {
         streaming.query(
             """
-            select d.sitelinks, jsonb_strip_nulls(jsonb_build_object(
-                'id', e.json -> 'id', 'labels', e.json -> 'labels', 'sitelinks', e.json -> 'sitelinks',
-                'claims', (select jsonb_object_agg(key, value) from jsonb_each(e.json -> 'claims') where key = any (?))
-            ))::text
+            select d.sitelinks, $CUT_DOWN
             from raw.discovered d
             join raw.entity e on e.qid = d.qid
             where d.seen_at >= ?
@@ -79,9 +76,15 @@ class RawStore(dataSource: DataSource, private val transactions: TransactionTemp
         )
     }
 
-    /** The JSON of those of [ids] stored, in no particular order. */
-    fun entities(ids: Collection<String>): List<String> =
-        jdbc.query("select json::text from raw.entity where qid = any (?)", { rs, _ -> rs.getString(1) }, ids.toTypedArray())
+    /**
+     * The JSON of those of [ids] stored, in no particular order, cut down to its id, labels, sitelinks and the
+     * statements of [properties]: a city's entity runs to megabytes.
+     */
+    fun entities(ids: Collection<String>, properties: List<String>): List<String> =
+        jdbc.query(
+            "select $CUT_DOWN from raw.entity e where qid = any (?)",
+            { rs, _ -> rs.getString(1) }, properties.toTypedArray(), ids.toTypedArray(),
+        )
 
     /** The import that has not finished, if one stopped half way, else a new one. */
     fun currentRun(): ImportRun =
@@ -265,5 +268,12 @@ class RawStore(dataSource: DataSource, private val transactions: TransactionTemp
 
     private companion object {
         const val SCHEMA = "raw"
+
+        /** An entity `e` cut down to its id, labels, sitelinks and the statements of the properties given as parameter. */
+        const val CUT_DOWN = """
+            jsonb_strip_nulls(jsonb_build_object(
+                'id', e.json -> 'id', 'labels', e.json -> 'labels', 'sitelinks', e.json -> 'sitelinks',
+                'claims', (select jsonb_object_agg(key, value) from jsonb_each(e.json -> 'claims') where key = any (?))
+            ))::text"""
     }
 }
