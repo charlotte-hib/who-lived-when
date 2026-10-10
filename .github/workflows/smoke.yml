@@ -1,0 +1,45 @@
+# The live site seen from outside, as a visitor reaches it: its certificate, then the read-only requests in
+# http/production.http through the public address. After each deploy (called by ci.yml) and every day, to catch what
+# breaks between deploys. A failure reaches the curator through GitHub's failed-run notifications; it never rolls
+# anything back (deploy/deploy.sh does that on its own probe). GitHub disables the schedule after 60 days without
+# a commit to the repository.
+name: Smoke test
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    name: Production smoke test
+    runs-on: ubuntu-latest
+    env:
+      # The site's https:// address, a repository variable so that it stays out of the repository.
+      SITE_URL: ${{ vars.SITE_URL }}
+      HTTP_CLIENT_IMAGE: jetbrains/intellij-http-client:2026.2.3@sha256:a69390757348c3a758ca36f7b213903929a5799c23702fb7aae2d222d90c59ef
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: http
+      - name: Check the certificate is valid for 10 more days
+        # Caddy renews it about 30 days before it expires, so failing here means renewal has failed for weeks.
+        run: |
+          host="${SITE_URL:?Set the repository variable SITE_URL to the https:// address of the site}"
+          host="${host#https://}"
+          openssl s_client -connect "$host:443" -servername "$host" -verify_return_error </dev/null 2>/dev/null \
+            | openssl x509 -noout -enddate -checkend $((10 * 24 * 3600))
+      - name: Run the HTTP Client tests
+        run: |
+          docker run --rm --volume "$PWD/http:/workdir" "$HTTP_CLIENT_IMAGE" \
+            -V baseUrl="$SITE_URL" -V httpUrl="http://${SITE_URL#https://}" --report --no-progress production.http
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: smoke-test-report
+          path: http/reports/
+          if-no-files-found: ignore

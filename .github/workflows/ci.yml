@@ -144,7 +144,7 @@ jobs:
           create-storage-record: false
 
   # Smoke tests the backend image over real HTTP with the requests in http/api.http.
-  # Only ever against this local container: production is health-checked by deploy/deploy.sh.
+  # Only ever against this local container: production gets the read-only http/production.http (smoke.yml).
   api:
     name: API tests
     needs: images
@@ -291,3 +291,8 @@ jobs:
             "cd /opt/who-lived-when && git fetch --quiet origin && git checkout --quiet --detach $GITHUB_SHA && \
              deploy/deploy.sh $GITHUB_SHA ${{ steps.images.outputs.backend }} ${{ steps.images.outputs.frontend }}" \
             < "$RUNNER_TEMP/release/release.tar.gz"
+
+  smoke:
+    name: Smoke test
+    needs: deploy
+    uses: ./.github/workflows/smoke.yml

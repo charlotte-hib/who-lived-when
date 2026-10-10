@@ -1,0 +1,105 @@
+# Read-only smoke tests for the live site, through its public address as a visitor reaches it: DNS, TLS, Caddy, the
+# frontend and the backend behind it. Run by .github/workflows/smoke.yml after each deploy and every day.
+# The only requests allowed against production: GETs, and checks of shape rather than of data, so the curator's
+# releases never break them. Never add POST /api/events here: it would count as a visitor.
+#   ijhttp -V baseUrl=https://<site> -V httpUrl=http://<site> http/production.http
+
+### Plain HTTP redirects to HTTPS (Caddy)
+# @no-redirect
+GET {{httpUrl}}/
+
+> {%
+    client.test("308 to the same path over HTTPS", () => {
+        client.assert(response.status === 308, `status ${response.status}`);
+        const location = response.headers.valueOf("Location");
+        client.assert(location === `${request.environment.get("baseUrl")}/`, `location ${location}`);
+    });
+%}
+
+### Home: rendered with the moments from the backend
+GET {{baseUrl}}/
+Accept: text/html
+
+> {%
+    client.test("200 with HTML", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "text/html", `content type ${response.contentType.mimeType}`);
+    });
+    client.test("Links to a story", () => {
+        const story = /href="\/moment\/([a-z0-9-]+)\/story"/.exec(response.body);
+        client.assert(story !== null, "no link to a story");
+        client.global.set("story", story[1]);
+    });
+%}
+
+### A moment's page
+GET {{baseUrl}}/moment/{{story}}
+Accept: text/html
+
+> {%
+    client.test("200 with HTML", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "text/html", `content type ${response.contentType.mimeType}`);
+    });
+%}
+
+### Its story
+GET {{baseUrl}}/moment/{{story}}/story
+Accept: text/html
+
+> {%
+    client.test("200 with HTML", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "text/html", `content type ${response.contentType.mimeType}`);
+    });
+%}
+
+### Search, the API path the search box calls
+GET {{baseUrl}}/api/search?q=an
+Accept: application/json
+
+> {%
+    client.test("200 with JSON", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+    });
+    client.test("Finds people", () => {
+        const first = response.body.people[0];
+        client.assert(first !== undefined, "no people for 'an'");
+        client.global.set("person", first.slug);
+    });
+%}
+
+### The first person found, on their own page
+GET {{baseUrl}}/person/{{person}}
+Accept: text/html
+
+> {%
+    client.test("200 with HTML", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "text/html", `content type ${response.contentType.mimeType}`);
+    });
+%}
+
+### People alive in a year, the API path the timeline calls
+GET {{baseUrl}}/api/years/1500/people?perRegion=2&exclude=FR
+Accept: application/json
+
+> {%
+    client.test("200 with a JSON list", () => {
+        client.assert(response.status === 200, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/json", `content type ${response.contentType.mimeType}`);
+        client.assert(Array.isArray(response.body), "not a list");
+    });
+%}
+
+### Unknown era: the backend's 404 comes through the frontend
+GET {{baseUrl}}/api/eras/atlantis
+Accept: application/json
+
+> {%
+    client.test("404 as Problem Details", () => {
+        client.assert(response.status === 404, `status ${response.status}`);
+        client.assert(response.contentType.mimeType === "application/problem+json", `content type ${response.contentType.mimeType}`);
+    });
+%}
