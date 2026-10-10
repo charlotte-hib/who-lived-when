@@ -76,7 +76,30 @@ class Life @Default constructor(
     @Column(length = LONG_TEXT) val description: String,
     val startYear: Int,
     val endYear: Int,
+    @Embedded val art: LifeArt? = null,
+    /** Drawn when there is no [art]. */
+    @Enumerated(EnumType.STRING) val icon: LifeIcon? = null,
 )
+
+/** A public-domain image of a typical life, and how to frame it in a circle. */
+@Embeddable
+data class LifeArt @Default constructor(
+    @Column(length = LONG_TEXT) val url: String,
+    val credit: String,
+    @Column(length = LONG_TEXT) val sourceUrl: String,
+    /** The point kept in view when cropping, as CSS `object-position`, e.g. "50% 70%". */
+    val position: String,
+    @Enumerated(EnumType.STRING) val fit: ArtFit,
+)
+
+/** How an image fills its frame: cropped to fill it, or whole, with a margin around it. */
+enum class ArtFit { COVER, CONTAIN }
+
+/** The icons a typical life without an image can show, after the work it stands for. */
+enum class LifeIcon {
+    AMPHORA, BRIEFCASE, CAR, COINS, CONCIERGE_BELL, FACTORY, FISH, HAMMER, LEAF, PICKAXE, SHELL, SHIELD, SHIRT, SHOVEL, SPOOL,
+    SPROUT, WHEAT,
+}
 
 /** A dated, sourced event. The only way two people get connected. */
 @Entity

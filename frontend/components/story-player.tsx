@@ -298,13 +298,18 @@ function Card({ card }: { card: StoryCard }) {
       <>
         <Kicker>Everyday life</Kicker>
         <div className="mb-4 flex items-center gap-4">
-          <LifeMark size="lg" />
+          <LifeMark life={card.life} size="lg" />
           <span>
             <span className={titleClass}>{card.life.label}</span>
             <span className="mt-1 block text-sm text-white/70">Illustrated · typical of the period</span>
           </span>
         </div>
         <p className={textClass}>{card.text ?? card.life.description}</p>
+        {card.life.art && (
+          <a href={card.life.art.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 block text-[11px] text-white/60 hover:underline">
+            {card.life.art.credit}
+          </a>
+        )}
       </>
     );
   }

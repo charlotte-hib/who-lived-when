@@ -9,6 +9,7 @@ export type Region = Schemas["Region"];
 export type Era = Schemas["Era"];
 export type Person = Schemas["Person"];
 export type Life = Schemas["Life"];
+export type LifeIcon = Schemas["LifeIcon"];
 export type Participant = Schemas["Participant"];
 export type Event = Schemas["Event"];
 export type EraDetail = Schemas["EraDetail"];

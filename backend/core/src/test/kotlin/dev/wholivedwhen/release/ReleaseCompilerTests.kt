@@ -1,8 +1,11 @@
 package dev.wholivedwhen.release
 
 import org.junit.jupiter.api.Test
+import dev.wholivedwhen.domain.ArtFit
 import dev.wholivedwhen.domain.CardType
 import dev.wholivedwhen.domain.Domain
+import dev.wholivedwhen.domain.LifeArt
+import dev.wholivedwhen.domain.LifeIcon
 import dev.wholivedwhen.domain.PublicationStatus
 import dev.wholivedwhen.support.currentYear
 import kotlin.test.assertEquals
@@ -90,6 +93,32 @@ class ReleaseCompilerTests {
     fun `a connection links two different people`() {
         val connection = ConnectionRecord(listOf("emile-zola", "emile-zola"), "friends", 1860, "Himself.", "https://example.org")
         assertEquals("connections.jsonl emile-zola emile-zola friends: a connection links two different people", problem(release.copy(connections = listOf(connection))))
+    }
+
+    @Test
+    fun `a life's art is centred and cropped unless its record says otherwise, and its icon is kept`() {
+        val art = LifeArtRecord("https://example.org/laundress.jpg", "A painter, Laundresses, 1880", "https://example.org/laundresses")
+        val lives = listOf(
+            release.lives[0].copy(art = art),
+            release.lives[0].copy(id = "a-weaver", art = art.copy(position = "15% 50%", fit = ArtFit.CONTAIN)),
+            release.lives[0].copy(id = "a-mason", icon = LifeIcon.HAMMER),
+        )
+
+        val compiled = ReleaseCompiler.compile(release.copy(lives = lives))
+
+        assertEquals(LifeArt(art.url, art.credit, art.source, "50% 50%", ArtFit.COVER), compiled.lives[0].art)
+        assertEquals(LifeArt(art.url, art.credit, art.source, "15% 50%", ArtFit.CONTAIN), compiled.lives[1].art)
+        assertEquals(null, compiled.lives[2].art)
+        assertEquals(LifeIcon.HAMMER, compiled.lives[2].icon)
+    }
+
+    @Test
+    fun `a life's art position is two percentages`() {
+        val art = LifeArtRecord("https://example.org/laundress.jpg", "A painter, Laundresses, 1880", "https://example.org/laundresses", position = "center")
+        assertEquals(
+            "lives.jsonl a-laundress: the art's position is two percentages, e.g. \"50% 70%\"",
+            problem(release.copy(lives = listOf(release.lives[0].copy(art = art)))),
+        )
     }
 
     @Test

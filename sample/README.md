@@ -13,7 +13,7 @@ At startup the backend reads the directory in `app.release.dir`, checks it (`Rel
 | `regions.jsonl` | region, by today's borders (`FR`) | |
 | `eras.jsonl` | who governed a region, from `start` to `end` (no `end`: until today) | region |
 | `people.jsonl` | person | region |
-| `lives.jsonl` | typical life, set in the era that covers its `start` | region |
+| `lives.jsonl` | typical life, set in the era that covers its `start`, drawn with a public-domain `art` (`url`, `credit`, `source`, and optionally `position`, two percentages as in CSS `object-position`, and `fit`, `COVER` or `CONTAIN`) or else an `icon` | region |
 | `events.jsonl` | dated, sourced event, set in the era that covers its `year` | region, people |
 | `connections.jsonl` | two people, how they knew each other, when, and the source | people |
 | `moments/<id>.json` | moment: the world around it, its story cards and its doors | region, people, lives, events, moments |

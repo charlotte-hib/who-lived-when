@@ -1,20 +1,60 @@
 "use client";
 
+import {
+  Amphora, Briefcase, Car, Coins, ConciergeBell, Factory, Fish, Hammer, Leaf, Pickaxe, Shell, Shield, Shirt, Shovel, Spool,
+  Sprout, User, Wheat, type LucideIcon,
+} from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
+import { ArtworkCredit } from "@/components/artwork-image";
 import { DetailPanel } from "@/components/detail-panel";
 import { PersonChip, chipClass } from "@/components/person-chip";
-import type { Life, Person } from "@/lib/types";
+import type { Life, LifeIcon, Person } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatYear } from "@/lib/years";
 
-const STRIPES = {
-  sm: "size-7 bg-[repeating-linear-gradient(45deg,var(--color-everyday)_0_2px,transparent_2px_6px)] opacity-70",
-  lg: "size-24 bg-[repeating-linear-gradient(45deg,var(--color-everyday)_0_4px,transparent_4px_10px)] opacity-80 ring-4 ring-everyday/60",
+const ICONS: Record<LifeIcon, LucideIcon> = {
+  AMPHORA: Amphora, BRIEFCASE: Briefcase, CAR: Car, COINS: Coins, CONCIERGE_BELL: ConciergeBell, FACTORY: Factory, FISH: Fish,
+  HAMMER: Hammer, LEAF: Leaf, PICKAXE: Pickaxe, SHELL: Shell, SHIELD: Shield, SHIRT: Shirt, SHOVEL: Shovel, SPOOL: Spool,
+  SPROUT: Sprout, WHEAT: Wheat,
 };
 
-/** Typical lives have no portrait: they are drawn as a hatched circle, so they never pass for real people. */
-export function LifeMark({ size, className }: { size: keyof typeof STRIPES; className?: string }) {
-  return <span aria-hidden className={cn("shrink-0 rounded-full", STRIPES[size], className)} />;
+const SIZES = {
+  sm: { circle: "size-7 ring-[1.5px]", icon: "size-4", image: "28px" },
+  lg: { circle: "size-24 ring-4", icon: "size-12", image: "96px" },
+};
+
+/**
+ * Typical lives have no portrait: they are drawn as a period painting or an icon on parchment, ringed in the everyday
+ * green, so they never pass for real people. A life with neither gets a plain figure.
+ */
+export function LifeMark({ life, size, className }: { life: Life; size: keyof typeof SIZES; className?: string }) {
+  const { art, icon } = life;
+  const Icon = icon ? ICONS[icon] : User;
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-full bg-parchment text-parchment-ink ring-everyday/60",
+        SIZES[size].circle,
+        className,
+      )}
+    >
+      {art ? (
+        <Image
+          src={art.url}
+          alt=""
+          fill
+          unoptimized
+          sizes={SIZES[size].image}
+          className={art.fit === "CONTAIN" ? "object-contain" : "object-cover"}
+          style={{ objectPosition: art.position }}
+        />
+      ) : (
+        <Icon className={SIZES[size].icon} strokeWidth={1.75} />
+      )}
+    </span>
+  );
 }
 
 type AroundProps = {
@@ -28,7 +68,7 @@ export function LifeDetails({ life, around = [], year }: { life: Life } & Around
   return (
     <article className="grid gap-5">
       <div className="flex items-center gap-4">
-        <LifeMark size="lg" />
+        <LifeMark life={life} size="lg" />
         <div>
           <h2 className="font-story text-3xl leading-tight font-medium">{life.label}</h2>
           <p className="mt-1 font-mono text-sm text-muted-foreground">
@@ -40,6 +80,7 @@ export function LifeDetails({ life, around = [], year }: { life: Life } & Around
       <p className="text-sm text-muted-foreground">
         A typical life of the period, illustrated rather than documented: not a real person.
       </p>
+      {life.art && <ArtworkCredit art={life.art} />}
       {around.length > 0 && year !== undefined && (
         <section className="grid gap-3">
           <h3 className="text-xs tracking-widest text-muted-foreground uppercase">Alive at the same time, {formatYear(year)}</h3>
@@ -58,7 +99,7 @@ export function LifeChip({ life, around, year }: { life: Life } & AroundProps) {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={cn(chipClass, "border-dashed hover:border-lamp")}>
-        <LifeMark size="sm" />
+        <LifeMark life={life} size="sm" />
         {life.label}
         <span className="font-mono text-xs text-muted-foreground">typical life</span>
       </button>

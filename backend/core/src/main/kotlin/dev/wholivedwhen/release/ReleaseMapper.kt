@@ -13,6 +13,7 @@ import dev.wholivedwhen.domain.Door
 import dev.wholivedwhen.domain.Era
 import dev.wholivedwhen.domain.Event
 import dev.wholivedwhen.domain.Life
+import dev.wholivedwhen.domain.LifeArt
 import dev.wholivedwhen.domain.Moment
 import dev.wholivedwhen.domain.Person
 import dev.wholivedwhen.domain.Region
@@ -51,6 +52,9 @@ abstract class ReleaseMapper {
     @Mapping(target = "startYear", source = "start")
     @Mapping(target = "endYear", source = "end")
     abstract fun life(record: LifeRecord, @Context references: References): Life
+
+    @Mapping(target = "sourceUrl", source = "source")
+    abstract fun lifeArt(record: LifeArtRecord): LifeArt
 
     @Mapping(target = "era", source = "record", qualifiedByName = ["eraOfEvent"])
     @Mapping(target = "sourceUrl", source = "source")

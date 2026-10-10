@@ -42,7 +42,18 @@ data class PersonRow(
 )
 
 data class LifeRow(
-    val id: String, val eraId: String, val label: String, val description: String, val startYear: Int, val endYear: Int,
+    val id: String,
+    val eraId: String,
+    val label: String,
+    val description: String,
+    val startYear: Int,
+    val endYear: Int,
+    val url: String?,
+    val credit: String?,
+    val sourceUrl: String?,
+    val position: String?,
+    val fit: String?,
+    val icon: String?,
 )
 
 data class EventRow(
@@ -122,6 +133,11 @@ abstract class ReleaseRowMapper {
     abstract fun person(entity: Person): PersonRow
 
     @Mapping(target = "eraId", source = "era.id")
+    @Mapping(target = "url", source = "art.url")
+    @Mapping(target = "credit", source = "art.credit")
+    @Mapping(target = "sourceUrl", source = "art.sourceUrl")
+    @Mapping(target = "position", source = "art.position")
+    @Mapping(target = "fit", source = "art.fit")
     abstract fun life(entity: Life): LifeRow
 
     @Mapping(target = "eraId", source = "era.id")

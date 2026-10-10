@@ -1,7 +1,9 @@
 package dev.wholivedwhen.release
 
+import dev.wholivedwhen.domain.ArtFit
 import dev.wholivedwhen.domain.CardType
 import dev.wholivedwhen.domain.Domain
+import dev.wholivedwhen.domain.LifeIcon
 import dev.wholivedwhen.domain.PublicationStatus
 
 // The records of a release directory, one class per kind of line (see sample/README.md). Records point at each
@@ -36,8 +38,29 @@ data class PersonRecord(
     val bio: String? = null,
 )
 
-/** A line of `lives.jsonl`: a typical existence, set in the era of its region that covers [start]. */
-data class LifeRecord(val id: String, val region: String, val label: String, val description: String, val start: Int, val end: Int)
+/**
+ * A line of `lives.jsonl`: a typical existence, set in the era of its region that covers [start]. Drawn with its [art],
+ * else its [icon], else a generic one.
+ */
+data class LifeRecord(
+    val id: String,
+    val region: String,
+    val label: String,
+    val description: String,
+    val start: Int,
+    val end: Int,
+    val art: LifeArtRecord? = null,
+    val icon: LifeIcon? = null,
+)
+
+/** A life's image. [position] is the point kept in view when cropping, as CSS `object-position`. */
+data class LifeArtRecord(
+    val url: String,
+    val credit: String,
+    val source: String,
+    val position: String = "50% 50%",
+    val fit: ArtFit = ArtFit.COVER,
+)
 
 /** A line of `events.jsonl`, set in the era of its region that covers [year]. */
 data class EventRecord(
