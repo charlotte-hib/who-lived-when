@@ -14,8 +14,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.RestClientException
 import org.springframework.web.client.toEntity
 import tools.jackson.databind.JsonNode
+import java.io.IOException
 import java.time.Duration
 
 @ConfigurationProperties("app.wikimedia")
@@ -32,13 +34,17 @@ data class WikimediaProperties(
     val userAgent: String,
     /** Seconds of replication lag past which the servers answer with the `maxlag` error rather than work. */
     val maxlag: Int,
-    /** How long to wait when Wikimedia asks to retry later without saying how long. */
+    /** How long to wait when Wikimedia asks to retry later without saying how long, doubled at each attempt. */
     val defaultRetryWait: Duration,
     /** The longest wait the client accepts. Asked to wait longer, it gives up rather than retry any sooner. */
     val maxRetryWait: Duration,
 )
 
-/** Wikimedia asked to retry later: HTTP 429, or the Action API's `maxlag` error. Retried after [retryAfter]. */
+/**
+ * Wikimedia asked to retry later (HTTP 429, or the Action API's `maxlag` error), or could not answer for now (HTTP
+ * 502 or 503, a 504 from the Action APIs, or a connection lost before the whole answer came). Retried after
+ * [retryAfter], when Wikimedia said how long.
+ */
 class WikimediaBusyException(message: String, val retryAfter: Duration?) : RuntimeException(message)
 
 /** An error the Action API answered with, other than `maxlag`, or a wait longer than the client accepts. Not retried. */
@@ -53,7 +59,9 @@ class SparqlTimeoutException(message: String) : RuntimeException(message)
  *
  * Every call shares one pace, the Resilience4j instances named `wikimedia` in application.yaml: one request at a time,
  * two a second at most. When Wikimedia asks to retry later (HTTP 429, or the `maxlag` error when its servers are
- * behind), the call waits as long as `Retry-After` says, holding back every other call meanwhile, then tries again.
+ * behind), the call waits as long as `Retry-After` says, holding back every other call meanwhile, then tries again. When
+ * it cannot answer for now, as the query service often cannot when overloaded (HTTP 502, or a connection dropped), the
+ * call waits longer at each attempt, then tries again.
  */
 @Component
 class WikimediaClient(
@@ -69,21 +77,25 @@ class WikimediaClient(
     private val restClient = builder.clone()
         .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent)
         .defaultStatusHandler({ it == HttpStatus.TOO_MANY_REQUESTS }) { _, response -> throw busy("HTTP 429", response.headers) }
+        .defaultStatusHandler({ it in UNAVAILABLE }) { _, response -> throw busy("HTTP ${response.statusCode.value()}", response.headers) }
         .build()
 
     // A query may run up to the query service's own limit, longer than any other call is given. When it runs over, the
-    // service stops it with a 500 naming a TimeoutException, or its proxy gives up first with a 504.
+    // service stops it with a 500 naming a TimeoutException, or its proxy gives up first with a 504. An overloaded
+    // service answers 502 instead, to queries that take seconds a minute later.
     private val sparqlClient = builder.clone()
         .requestFactory(requestFactories.build(clientSettings.withReadTimeout(properties.sparqlTimeout)))
         .defaultHeader(HttpHeaders.USER_AGENT, properties.userAgent)
         .defaultStatusHandler({ it == HttpStatus.TOO_MANY_REQUESTS }) { _, response -> throw busy("HTTP 429", response.headers) }
         .defaultStatusHandler({ it.is5xxServerError }) { _, response ->
-            val status = response.statusCode.value()
+            val status = response.statusCode
             val body = response.body.readNBytes(MAX_ERROR_BYTES).decodeToString()
-            if (status == HttpStatus.GATEWAY_TIMEOUT.value() || "TimeoutException" in body) {
-                throw SparqlTimeoutException("The query service stopped the query: HTTP $status")
+            when {
+                status == HttpStatus.GATEWAY_TIMEOUT || "TimeoutException" in body ->
+                    throw SparqlTimeoutException("The query service stopped the query: HTTP ${status.value()}")
+                status in UNAVAILABLE -> throw busy("The query service is unavailable: HTTP ${status.value()}", response.headers)
+                else -> throw WikimediaException("The query service failed: HTTP ${status.value()} ${body.take(200)}")
             }
-            throw WikimediaException("The query service failed: HTTP $status ${body.take(200)}")
         }
         .build()
 
@@ -161,7 +173,16 @@ class WikimediaClient(
     // The bulkhead outermost: a call that waits out Retry-After keeps every other call waiting too. Each attempt then
     // takes its own permit from the rate limiter.
     private fun <T> paced(call: () -> T): T =
-        Bulkhead.decorateSupplier(bulkhead, Retry.decorateSupplier(retry, RateLimiter.decorateSupplier(rateLimiter, call))).get()
+        Bulkhead.decorateSupplier(bulkhead, Retry.decorateSupplier(retry, RateLimiter.decorateSupplier(rateLimiter) { busyWhenDisconnected(call) })).get()
+
+    // A connection lost before the whole answer came, such as an HTTP/2 stream the server cancelled: try again later.
+    private fun <T> busyWhenDisconnected(call: () -> T): T =
+        try {
+            call()
+        } catch (e: RestClientException) {
+            val lost = generateSequence<Throwable>(e) { it.cause }.firstOrNull { it is IOException } ?: throw e
+            throw WikimediaBusyException("Connection lost: $lost", null)
+        }
 
     private fun busy(reason: String, headers: HttpHeaders): RuntimeException {
         val retryAfter = headers.getFirst(HttpHeaders.RETRY_AFTER)?.trim()?.toLongOrNull()?.let(Duration::ofSeconds)
@@ -177,6 +198,8 @@ class WikimediaClient(
         const val MAX_ENTITIES = 50
         const val MAX_PAGES = 20
         private const val MAX_ERROR_BYTES = 4096
+        /** Bad gateway, unavailable, gateway timeout: Wikimedia cannot answer for now. */
+        private val UNAVAILABLE = setOf(HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT)
         private val SPARQL_RESULTS = MediaType("application", "sparql-results+json")
     }
 }

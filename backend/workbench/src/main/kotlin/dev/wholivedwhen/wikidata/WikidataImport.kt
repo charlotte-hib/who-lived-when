@@ -17,8 +17,9 @@ import java.time.Instant
  * Every request goes through [WikimediaClient]'s shared pace. Progress is in the database: a run that stopped resumes
  * at the next slice or batch, and first waits out any `Retry-After` Wikimedia gave before it stopped.
  *
- * Wikidata can stay too far behind for minutes on end (`maxlag`), longer than the client's retries last. The import
- * then pauses and resumes by itself, up to [WikidataProperties.restarts] times in a row without progress.
+ * Wikidata can stay too far behind for minutes on end (`maxlag`), and the query service overloaded, longer than the
+ * client's retries last. The import then pauses and resumes by itself, up to [WikidataProperties.restarts] times in a
+ * row without progress.
  */
 @Component
 class WikidataImport(

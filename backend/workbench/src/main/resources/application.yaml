@@ -57,6 +57,7 @@ app:
     user-agent: ${app.wikipedia.user-agent}
     # Wikimedia's advice for bots: let the servers say no when they are more than 5 seconds behind.
     maxlag: 5
+    # When Wikimedia gives no Retry-After, as on a 502: 5 s, then 10, 20, 40, 80 (resilience4j.retry, max-attempts).
     default-retry-wait: 5s
     max-retry-wait: 2m
   wikidata:
@@ -120,6 +121,6 @@ resilience4j:
   retry:
     instances:
       wikimedia:
-        # The waits come from Retry-After (WikimediaRetry).
+        # The waits come from Retry-After, else grow from app.wikimedia.default-retry-wait (WikimediaRetry).
         max-attempts: 6
         retry-exceptions: dev.wholivedwhen.wikimedia.WikimediaBusyException

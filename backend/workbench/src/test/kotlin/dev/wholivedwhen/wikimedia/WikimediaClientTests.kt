@@ -8,6 +8,8 @@ import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import com.github.tomakehurst.wiremock.http.Fault
 import com.github.tomakehurst.wiremock.stubbing.Scenario
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Import
 import org.wiremock.spring.ConfigureWireMock
 import org.wiremock.spring.EnableWireMock
 import org.wiremock.spring.InjectWireMock
+import org.wiremock.spring.WireMockConfigurationCustomizer
 import dev.wholivedwhen.testing.PostgresTestConfiguration
 import java.util.concurrent.Executors
 import kotlin.test.assertEquals
@@ -24,7 +27,8 @@ import kotlin.test.assertTrue
 
 /**
  * Against a fake Wikimedia (WireMock) that answers with responses recorded from the real one, with the real pace from
- * application.yaml. The stubs ask to retry after 1 second, to keep the tests short.
+ * application.yaml. The stubs ask to retry after 1 second, and the first wait without Retry-After is 200 ms, to keep
+ * the tests short.
  */
 @SpringBootTest(
     properties = [
@@ -32,9 +36,16 @@ import kotlin.test.assertTrue
         "app.wikimedia.wikidata-api=\${wikimedia.base-url}/w/api.php",
         "app.wikimedia.wikipedia-api=\${wikimedia.base-url}/{language}/w/api.php",
         "app.wikimedia.wikidata-sparql=\${wikimedia.base-url}/sparql",
+        "app.wikimedia.default-retry-wait=200ms",
     ],
 )
-@EnableWireMock(ConfigureWireMock(baseUrlProperties = ["wikimedia.base-url"], filesUnderClasspath = "wiremock"))
+@EnableWireMock(
+    ConfigureWireMock(
+        baseUrlProperties = ["wikimedia.base-url"],
+        filesUnderClasspath = "wiremock",
+        configurationCustomizers = [WikimediaClientTests.Http1::class],
+    ),
+)
 @Import(PostgresTestConfiguration::class)
 class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
 
@@ -146,6 +157,37 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
     }
 
     @Test
+    fun `when Wikimedia cannot answer for now (502, 503, 504), waits longer at each attempt, then tries again`() {
+        listOf(502, 503, 504).forEachIndexed { i, status ->
+            server.stubFor(
+                get(wikidata).inScenario("down").whenScenarioStateIs(if (i == 0) Scenario.STARTED else "failed $i")
+                    .willReturn(aResponse().withStatus(status)).willSetStateTo("failed ${i + 1}"),
+            )
+        }
+        server.stubFor(get(wikidata).inScenario("down").whenScenarioStateIs("failed 3").willReturn(entities))
+
+        assertTrue(caesarAndHugo().path("entities").has("Q1048"))
+
+        val waits = received().zipWithNext { previous, next -> next - previous }
+        assertEquals(3, waits.size)
+        listOf(200, 400, 800).zip(waits).forEach { (wait, waited) -> assertTrue(waited >= wait - TOLERANCE_MS, "waited $waited ms, not $wait") }
+    }
+
+    @Test
+    fun `when the connection is lost before the whole answer came, tries again`() {
+        listOf(Fault.CONNECTION_RESET_BY_PEER, Fault.MALFORMED_RESPONSE_CHUNK).forEachIndexed { i, fault ->
+            server.stubFor(
+                get(wikipedia).inScenario("lost").whenScenarioStateIs(if (i == 0) Scenario.STARTED else "lost $i")
+                    .willReturn(aResponse().withFault(fault)).willSetStateTo("lost ${i + 1}"),
+            )
+        }
+        server.stubFor(get(wikipedia).inScenario("lost").whenScenarioStateIs("lost 2").willReturn(pages))
+
+        assertEquals(3, threePages().path("query").path("pages").size())
+        assertEquals(3, server.allServeEvents.size)
+    }
+
+    @Test
     fun `other API errors, and waits longer than the client accepts, fail at once`() {
         server.stubFor(get(wikidata).willReturn(okJson("""{"error":{"code":"no-such-entity","info":"Could not find an entity with the ID \"Q0\"."}}""")))
         val error = assertThrows<WikimediaException> { caesarAndHugo() }
@@ -201,6 +243,19 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
         assertThrows<SparqlTimeoutException> { wikimedia.sparql("SELECT * WHERE { }") }
         server.stubFor(get(sparql).willReturn(aResponse().withStatus(500).withBody("MalformedQueryException")))
         assertThrows<WikimediaException> { wikimedia.sparql("SELECT * WHERE {") }
+
+        // Overloaded: answered once it is not.
+        server.resetAll()
+        server.stubFor(get(sparql).inScenario("502").whenScenarioStateIs(Scenario.STARTED).willReturn(aResponse().withStatus(502)).willSetStateTo("up"))
+        server.stubFor(get(sparql).inScenario("502").whenScenarioStateIs("up").willReturn(okJson("""{"results":{"bindings":[]}}""")))
+        assertTrue(wikimedia.sparql("SELECT * WHERE { }").path("results").path("bindings").isEmpty)
+    }
+
+    /** WireMock drops connections only over HTTP/1.1: the client would otherwise talk HTTP/2 to it. */
+    class Http1 : WireMockConfigurationCustomizer {
+        override fun customize(configuration: WireMockConfiguration, options: ConfigureWireMock) {
+            configuration.http2PlainDisabled(true)
+        }
     }
 
     private companion object {

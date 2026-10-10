@@ -176,7 +176,9 @@ class WikidataImportTests(
         stubFirstImport()
         val wholeSlice = and(containing(FROM_2000_BCE), containing(UNTIL_1900_BCE))
         server.stubFor(get(sparql).atPriority(1).withQueryParam("query", wholeSlice).willReturn(aResponse().withStatus(500).withBody(TIMEOUT)))
-        server.stubFor(get(sparql).atPriority(2).withQueryParam("query", containing(UNTIL_1900_BCE)).willReturn(aResponse().withStatus(502)))
+        server.stubFor(
+            get(sparql).atPriority(2).withQueryParam("query", containing(UNTIL_1900_BCE)).willReturn(aResponse().withStatus(500).withBody(BROKEN)),
+        )
 
         assertThrows<WikimediaException> { wikidataImport.run() }
         assertEquals(3, requests("/sparql").size)
@@ -197,7 +199,7 @@ class WikidataImportTests(
     @Test
     fun `a run that stopped half way resumes at the next batch`() {
         stubFirstImport()
-        server.stubFor(linked().atPriority(1).willReturn(aResponse().withStatus(503)))
+        server.stubFor(linked().atPriority(1).willReturn(aResponse().withStatus(500)))
         assertThrows<HttpServerErrorException> { wikidataImport.run() }
 
         server.resetRequests()
@@ -273,6 +275,7 @@ class WikidataImportTests(
         const val UNTIL_1900_BCE = "?born < \"-1899-01-01T00:00:00Z\"^^xsd:dateTime"
         // What the query service answers when it stops a query after 60 seconds.
         const val TIMEOUT = "java.util.concurrent.ExecutionException: java.util.concurrent.TimeoutException"
+        const val BROKEN = "java.lang.IllegalStateException"
         const val NO_ONE = """{"head":{"vars":["person","sitelinks"]},"results":{"bindings":[]}}"""
         // The classes above the occupations, a level a request, as the import asks for them.
         val CLASSES = listOf(
