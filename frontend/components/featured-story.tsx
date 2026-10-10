@@ -47,7 +47,7 @@ export function FeaturedStory({ stories, initialIndex }: Props) {
             <li key={person.slug}>
               <Link
                 href={`/person/${person.slug}?year=${story.focusYear}`}
-                className="group -m-1.5 flex items-center gap-2 rounded-full p-1.5 pr-3 text-sm hover:bg-black/30"
+                className="group -m-1.5 flex items-center gap-2 rounded-full p-1.5 pr-3 text-sm hover:bg-background/50"
               >
                 <PersonAvatar person={person} className="size-9" />
                 <span>

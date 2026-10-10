@@ -12,7 +12,7 @@ export function MomentTile({ moment, size = "large" }: { moment: MomentSummary; 
     <Link
       href={momentHref(moment)}
       className={cn(
-        "group relative flex flex-col justify-end overflow-hidden rounded-2xl border hover:border-lamp",
+        "dark group relative flex flex-col bg-background justify-end overflow-hidden rounded-2xl border hover:border-lamp",
         size === "large" ? "min-h-80" : "min-h-52",
       )}
     >

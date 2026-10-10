@@ -119,7 +119,7 @@ export function StoryPlayer({ story }: { story: Story }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 touch-none overflow-hidden bg-black text-white select-none"
+      className="dark fixed inset-0 z-50 touch-none overflow-hidden bg-black text-white select-none"
       onPointerDown={() => (dragged.current = false)}
       onPanStart={() => (dragged.current = true)}
       onPan={(_, { offset }) => {
