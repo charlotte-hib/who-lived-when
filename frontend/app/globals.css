@@ -66,7 +66,7 @@
 
 :root,
 .dark {
-  /* Warm paper, warm ink, and the lamp darkened enough for small text. */
+  /* Ivory paper, warm ink, and the lamp darkened enough for small text. */
   color-scheme: light;
   /* Social strata. */
   --power: #3b6ea5;
@@ -76,7 +76,9 @@
   /* Behind a typical life's icon, the same in both themes. */
   --parchment: #e8dcc2;
   --parchment-ink: #5b4630;
-  --background: oklch(0.98 0.006 80);
+  --background: oklch(0.965 0.018 85);
+  /* A faint grain over the ivory: warm brown specks from an inline SVG noise filter, no image to load. */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.25 0 0 0 0 0.15 -2 0 0 0 1.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.16'/%3E%3C/svg%3E");
   --foreground: oklch(0.2 0.01 70);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.01 70);
@@ -84,15 +86,15 @@
   --popover-foreground: oklch(0.2 0.01 70);
   --primary: oklch(0.52 0.1 75);
   --primary-foreground: oklch(0.99 0.005 85);
-  --secondary: oklch(0.95 0.008 80);
+  --secondary: oklch(0.935 0.016 85);
   --secondary-foreground: oklch(0.2 0.01 70);
-  --muted: oklch(0.95 0.008 80);
+  --muted: oklch(0.935 0.016 85);
   --muted-foreground: oklch(0.48 0.015 70);
-  --accent: oklch(0.95 0.008 80);
+  --accent: oklch(0.935 0.016 85);
   --accent-foreground: oklch(0.2 0.01 70);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.01 80);
-  --input: oklch(0.9 0.01 80);
+  --border: oklch(0.88 0.018 82);
+  --input: oklch(0.88 0.018 82);
   --ring: oklch(0.52 0.1 75);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -100,13 +102,13 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.98 0.006 80);
+  --sidebar: oklch(0.965 0.018 85);
   --sidebar-foreground: oklch(0.2 0.01 70);
   --sidebar-primary: oklch(0.52 0.1 75);
   --sidebar-primary-foreground: oklch(0.99 0.005 85);
-  --sidebar-accent: oklch(0.95 0.008 80);
+  --sidebar-accent: oklch(0.935 0.016 85);
   --sidebar-accent-foreground: oklch(0.2 0.01 70);
-  --sidebar-border: oklch(0.9 0.01 80);
+  --sidebar-border: oklch(0.88 0.018 82);
   --sidebar-ring: oklch(0.52 0.1 75);
 
   @variant dark {
@@ -117,6 +119,7 @@
     --everyday: #9cc673;
     --lamp: #f2c97d;
     --background: oklch(0.16 0.006 80);
+    --paper-grain: none;
     --foreground: oklch(0.95 0.012 85);
     --card: oklch(0.2 0.009 80);
     --card-foreground: oklch(0.95 0.012 85);
@@ -151,6 +154,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: var(--paper-grain);
   }
   /* Text inherits its color already resolved: a dark island picks its own. */
   .dark {
