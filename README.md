@@ -71,36 +71,51 @@ Next.js 16 App Router with server components for data. Calls to the backend go t
 
 `proxy.ts` limits how fast one visitor can load pages and call the API: 300 requests at once, then 5 a second, and `429 Too Many Requests` with `Retry-After` beyond that (`lib/rate-limit.ts`). A visitor is an IPv4 address or an IPv6 /64, taken from the `X-Forwarded-For` header that Caddy sets. Static files and Next.js prefetches (which hold no data) do not count. Requests without that header (local runs, CI) and from private addresses are not limited. The frontend's log counts refused requests, never with an address.
 
-## Drafting a story with Claude
+## The workbench
 
-Stories are prose, so they are drafted by Claude and reviewed by a person before they ship. Drafting is part of the workbench, which runs on the curator's machine only, with Docker running:
+The curator's tools run on the curator's machine only, never in an image: the workbench, a server on `127.0.0.1:8090`, and `wb`, its command line. Start the workbench, with Docker running, and leave it running:
 
 ```sh
 cd backend
-export ANTHROPIC_API_KEY=...
-./gradlew :workbench:bootRun --args='--app.drafting.moment=edo-1830s'
+export ANTHROPIC_API_KEY=...   # for story drafts only
+./gradlew :workbench:bootRun
 ```
 
-The workbench has a Postgres of its own (`compose.workbench.yaml`, at the repository's root, with a named volume), which Spring Boot's Docker Compose support starts and stops with it. It loads `sample/` into it, fills in the Wikipedia leads, drafts, and exits.
+It has a Postgres of its own (`compose.workbench.yaml`, at the repository's root, with a named volume), which Spring Boot's Docker Compose support starts and stops with it. It loads `sample/` into it and fills in the Wikipedia leads of its people (about a minute). Then, from another terminal:
+
+```sh
+backend/workbench/wb import            # fetch Wikidata's people (hours), or resume
+backend/workbench/wb map               # map the last import to the dataset's rows
+backend/workbench/wb claims            # propose the facts of the moments' people for review
+backend/workbench/wb draft edo-1830s   # draft a moment's story with Claude
+backend/workbench/wb queues            # what waits for review
+```
+
+Each command starts a run in the background, one at a time, and follows it; `wb runs` lists them. Its API is `api/workbench.yaml`, spec first like the site's. Every request needs the token the workbench writes on each start to `~/.config/who-lived-when/workbench-token` (readable by the curator only), and must be addressed to `localhost` or `127.0.0.1`: a web page open in the curator's browser can send requests to localhost, but cannot read that file. An authorization server with passkeys will replace the token.
+
+### Claims
+
+Anything a careful reader could dispute is a claim in the workbench's schema `curation` (never dropped: it holds the curator's work): a person's facts as fetched, a connection, an event, an anecdote. Each has an id derived from what it is about (`person-facts:Q535`), a status (`CANDIDATE`, `APPROVED`, `REJECTED`, `NEEDS_WORK`), its sources (a Wikidata entity, a Wikipedia article, a book's page, a web page, a podcast's minute) and flags saying why it needs a person's eye. Every decision is logged with the payload before and after, and who made it; the curator's last one can be undone. `wb claims` proposes the facts of the people born in each moment's region and alive during it, the 50 best known per moment. Proposing again after an import refreshes them: a claim not yet decided takes the new facts, an approved one goes back to review, flagged. Claims can also be added by hand (`POST /api/claims`), from a podcast or a book, with at least one source.
+
+## Drafting a story with Claude
+
+Stories are prose, so they are drafted by Claude and reviewed by a person before they ship: `wb draft <moment>`.
 
 The workbench reaches Wikimedia through one client, `WikimediaClient`: Wikidata's `wbgetentities` (up to 50 entities a request) and Wikipedia's `action=query` (leads, thumbnails and revisions of up to 20 pages), always with `maxlag=5`, and Wikidata's query service (SPARQL), all with a User-Agent with a contact. Every call shares one pace, Resilience4j instances named `wikimedia` in its `application.yaml`: one request at a time (a bulkhead), two a second at most (a rate limiter), and, when Wikimedia answers 429 or the `maxlag` error, a wait as long as its `Retry-After` asks before trying again (a retry), during which every other call waits too. Its tests run against WireMock, with responses recorded from the real APIs.
 
-`StoryDraftJob` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `sample/moments/<moment>.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
+`StoryDrafting` gathers the moment's sources (Wikipedia leads of the people alive there, its documented events, eras and typical lives, and people alive elsewhere), asks `claude-opus-5-5` for a story as structured output where every line carries a quote from a source, then checks every quote and reference (`StoryDraftValidator`). Nothing is published: the draft and the validator's findings go to `backend/drafts/<moment>.json` for a curator to correct and copy into `sample/moments/<moment>.json`. The request opts into server-side refusal fallbacks (`fallbacks: "default"`).
 
 ## Importing people from Wikidata
 
 The workbench fetches people from Wikidata into a schema of its own in its Postgres, `raw`, which keeps what came back as it came (`jsonb`) and is never dropped, unlike the release schema rebuilt from `sample/` on every start. Its migrations are in `workbench` (`db/raw`), run by a Flyway of their own.
 
-```sh
-cd backend
-./gradlew :workbench:bootRun --args='--app.wikidata.import=true --app.wikipedia.enrich=false'
-```
+`wb import` runs it.
 
 1. **Discovery** asks Wikidata's query service for humans born from 3500 BCE to today with at least 25 sitelinks, or 10 when born before 1800, leaving out people with no date of death born less than 110 years ago. One query per slice of birth dates, under the service's 60 seconds: a century before 1500, a decade before 1900, then a year. A slice the service stops anyway is asked for again in halves. Q-ids and sitelinks go to `raw.discovered`.
 2. **People**: their entities, 50 a request (`wbgetentities`: labels and aliases in English, French, Japanese and `mul`, statements, English and French Wikipedia sitelinks), into `raw.entity` with their revision.
 3. **Linked**: the places of birth, death, work and residence, and the occupations, those people's statements point to, the same way.
 
-Run it again later and it refreshes: for entities already stored it first asks for their latest revisions only (`props=info`, 50 a request), and fetches again only those that changed. Every request goes through `WikimediaClient`'s pace. Progress is kept in `raw.import_run`, `raw.discovery_slice` and `raw.import_item`, one transaction per slice or batch, so a run that stops resumes at the next one, after waiting out any `Retry-After` Wikimedia gave before it stopped. Each run counts its requests, the waits Wikimedia asked for, and the entities fetched, unchanged and gone. Enrichment is turned off on the command line because it calls Wikipedia outside that pace.
+Run it again later and it refreshes: for entities already stored it first asks for their latest revisions only (`props=info`, 50 a request), and fetches again only those that changed. Every request goes through `WikimediaClient`'s pace. Progress is kept in `raw.import_run`, `raw.discovery_slice` and `raw.import_item`, one transaction per slice or batch, so a run that stops resumes at the next one, after waiting out any `Retry-After` Wikimedia gave before it stopped. Each run counts its requests, the waits Wikimedia asked for, and the entities fetched, unchanged and gone. The leads filled in when the workbench starts call Wikipedia outside that pace: start an import once they are done.
 
 ## API
 

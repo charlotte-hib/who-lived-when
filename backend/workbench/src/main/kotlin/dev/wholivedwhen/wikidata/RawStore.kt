@@ -86,6 +86,11 @@ class RawStore(dataSource: DataSource, private val transactions: TransactionTemp
             { rs, _ -> rs.getString(1) }, properties.toTypedArray(), ids.toTypedArray(),
         )
 
+    /** The revision stored of each of [qids] the workbench fetched. */
+    fun revisions(qids: Collection<String>): Map<String, Long> =
+        jdbc.query("select qid, revision from raw.entity where qid = any (?)", { rs, _ -> rs.getString(1) to rs.getLong(2) }, qids.toTypedArray())
+            .toMap()
+
     /** The import that has not finished, if one stopped half way, else a new one. */
     fun currentRun(): ImportRun =
         jdbc.query("select * from raw.import_run where finished_at is null order by id desc limit 1", ::toRun).firstOrNull()

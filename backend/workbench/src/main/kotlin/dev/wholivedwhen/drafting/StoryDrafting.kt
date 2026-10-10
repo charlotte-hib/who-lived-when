@@ -2,12 +2,7 @@ package dev.wholivedwhen.drafting
 
 import com.anthropic.client.okhttp.AnthropicOkHttpClient
 import org.slf4j.LoggerFactory
-import org.springframework.boot.CommandLineRunner
-import org.springframework.boot.SpringApplication
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.context.ConfigurableApplicationContext
-import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
 import dev.wholivedwhen.jobs.WikipediaJob
@@ -16,10 +11,9 @@ import dev.wholivedwhen.repository.PersonRepository
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
-import kotlin.system.exitProcess
 
 @ConfigurationProperties("app.drafting")
-data class DraftingProperties(val moment: String?, val model: String, val outputDir: String)
+data class DraftingProperties(val model: String, val outputDir: String)
 
 /** What a curator reviews: the draft, the sources it was written from, and anything the validator found. */
 data class DraftForReview(
@@ -32,28 +26,25 @@ data class DraftForReview(
 )
 
 /**
- * Drafts one moment's story with Claude, then exits: `./gradlew :workbench:bootRun --args='--app.drafting.moment=edo-1830s'`.
+ * Drafts one moment's story with Claude: `wb draft edo-1830s`.
  *
  * Nothing is published. The draft is written to `drafts/<moment>.json` with the validator's findings, for a
  * curator to review, correct and copy into `sample/`. Needs an Anthropic API key in the environment.
  */
 @Component
-@Order(3)
-@ConditionalOnExpression("!'\${app.drafting.moment:}'.isBlank()")
-class StoryDraftJob(
+class StoryDrafting(
     private val properties: DraftingProperties,
     private val moments: MomentRepository,
     private val people: PersonRepository,
     private val wikipedia: WikipediaJob?,
     private val sources: DraftSources,
     private val jsonMapper: JsonMapper,
-    private val context: ConfigurableApplicationContext,
-) : CommandLineRunner {
+) {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
-    override fun run(vararg args: String) {
-        val momentId = properties.moment!!
+    /** Drafts [momentId]'s story and says where it wrote it. */
+    fun draft(momentId: String): String {
         val moment = moments.findById(momentId).orElseThrow { IllegalArgumentException("Unknown moment: $momentId") }
 
         // The drafter works from Wikipedia leads, so make sure this moment's people have theirs first.
@@ -71,6 +62,6 @@ class StoryDraftJob(
 
         log.info("Wrote {} with {} cards and {} problems to review", file.toAbsolutePath(), draft.cards.size, problems.size)
         problems.forEach { log.warn("Review: {}", it) }
-        exitProcess(SpringApplication.exit(context))
+        return "Wrote ${file.toAbsolutePath()}: ${draft.cards.size} cards, ${problems.size} problems to review"
     }
 }
