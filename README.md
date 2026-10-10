@@ -67,7 +67,7 @@ Each release gets a database schema of its own, named after the deployed commit 
 
 ### Frontend (`frontend/`)
 
-Next.js 16 App Router with server components for data. Calls to the backend go through `openapi-fetch`, typed by `lib/api-schema.ts`, which `openapi-typescript` generates from `api/openapi.yaml` (`npm run api:types`; CI fails when it is out of date). The story player, the moment's year slider (Base UI) and search are client components. shadcn/ui, `motion` for transitions, Lucide icons, and a dark "gallery" theme.
+Next.js 16 App Router with server components for data. Calls to the backend go through `openapi-fetch`, typed by `lib/api-schema.ts`, which `openapi-typescript` generates from `api/openapi.yaml` (`npm run api:types`; CI fails when it is out of date). The story player, the moment's year slider (Base UI) and search are client components. shadcn/ui, `motion` for transitions, Lucide icons, and a theme that follows the device: warm paper by day, a dark "gallery" at night, and whatever sits on a painting dark in both.
 
 `proxy.ts` limits how fast one visitor can load pages and call the API: 300 requests at once, then 5 a second, and `429 Too Many Requests` with `Retry-After` beyond that (`lib/rate-limit.ts`). A visitor is an IPv4 address or an IPv6 /64, taken from the `X-Forwarded-For` header that Caddy sets. Static files and Next.js prefetches (which hold no data) do not count. Requests without that header (local runs, CI) and from private addresses are not limited. The frontend's log counts refused requests, never with an address.
 

@@ -12,7 +12,7 @@ export function DoorCard({ door, className }: { door: Door; className?: string }
     <Link
       href={momentHref(target)}
       className={cn(
-        "group relative flex min-h-40 flex-col justify-end overflow-hidden rounded-2xl border border-lamp/40 hover:border-lamp",
+        "dark group relative flex min-h-40 flex-col bg-background justify-end overflow-hidden rounded-2xl border border-lamp/40 hover:border-lamp",
         className,
       )}
     >
