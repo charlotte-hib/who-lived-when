@@ -73,13 +73,16 @@ class SparqlTimeoutException(message: String) : RuntimeException(message)
 @Component
 class WikimediaClient(
     builder: RestClient.Builder,
-    requestFactories: ClientHttpRequestFactoryBuilder<*>,
     clientSettings: HttpClientSettings,
     private val properties: WikimediaProperties,
     rateLimiters: RateLimiterRegistry,
     bulkheads: BulkheadRegistry,
     retries: RetryRegistry,
 ) {
+
+    // The JDK's client, as everywhere in the workbench (application.yaml), asking for answers gzipped, as Wikidata asks
+    // of its clients: 50 people's entities run to megabytes of JSON.
+    private val requestFactories = ClientHttpRequestFactoryBuilder.jdk().withCustomizer { it.enableCompression(true) }
 
     private val restClient = builder.clone()
         .requestFactory(requestFactories.build(clientSettings.withReadTimeout(properties.readTimeout)))

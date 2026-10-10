@@ -88,7 +88,8 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
                 .withQueryParam("sitefilter", equalTo("enwiki|frwiki"))
                 .withQueryParam("maxlag", equalTo("60"))
                 .withQueryParam("format", equalTo("json"))
-                .withHeader("User-Agent", containing("WhoLivedWhen/")),
+                .withHeader("User-Agent", containing("WhoLivedWhen/"))
+                .withHeader("Accept-Encoding", containing("gzip")),
         )
     }
 
