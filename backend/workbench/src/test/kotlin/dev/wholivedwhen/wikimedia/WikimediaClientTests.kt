@@ -63,7 +63,7 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
     private fun caesarAndHugo() =
         wikimedia.entities(listOf("Q1048", "Q535"), listOf("info", "labels", "aliases", "claims", "sitelinks"), listOf("en", "fr", "ja"), listOf("enwiki", "frwiki"))
 
-    private fun threePages() = wikimedia.pages("en", listOf("Victor Hugo", "Julius Caesar", "Émile Zola"))
+    private fun threePages() = wikimedia.pages("en", listOf("Victor_Hugo", "Julius_Caesar", "Émile_Zola"))
 
     /** When the fake Wikimedia received each request, in milliseconds, in order. */
     private fun received() = server.allServeEvents.map { it.request.loggedDate.time }.sorted()
@@ -91,22 +91,29 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
     }
 
     @Test
-    fun `asks a Wikipedia edition for the leads, thumbnails and revisions of up to 20 pages`() {
+    fun `asks a Wikipedia edition for the intros, page images, URLs and revisions of up to 20 pages`() {
         server.stubFor(get(wikipedia).willReturn(pages))
 
         val answer = threePages()
 
-        val titles = answer.path("query").path("pages").iterator().asSequence().map { it.path("title").asString() }.toList()
-        assertEquals(listOf("Julius Caesar", "Victor Hugo", "Émile Zola"), titles)
+        // By the title asked for, though Wikipedia writes it with spaces.
+        assertEquals(listOf("Victor_Hugo", "Julius_Caesar", "Émile_Zola"), answer.keys.toList())
+        val zola = answer.getValue("Émile_Zola")
+        assertEquals("Émile Zola", zola.path("title").asString())
+        assertTrue(zola.path("extract").asString().startsWith("Émile Édouard Charles Antoine Zola"))
+        assertEquals("Nadar_(atelier_de)_-_Emile_Zola,_13-556535.jpg", zola.path("pageimage").asString())
+        assertEquals(400, zola.path("thumbnail").path("width").asInt())
+        assertEquals("https://en.wikipedia.org/wiki/%C3%89mile_Zola", zola.path("fullurl").asString())
         server.verify(
             getRequestedFor(wikipedia)
                 .withQueryParam("action", equalTo("query"))
                 .withQueryParam("prop", equalTo("extracts|pageimages|info"))
                 .withQueryParam("exintro", equalTo("1"))
                 .withQueryParam("explaintext", equalTo("1"))
-                .withQueryParam("piprop", equalTo("thumbnail"))
+                .withQueryParam("piprop", equalTo("thumbnail|name"))
                 .withQueryParam("pithumbsize", equalTo("400"))
-                .withQueryParam("titles", equalTo("Victor Hugo|Julius Caesar|Émile Zola"))
+                .withQueryParam("inprop", equalTo("url"))
+                .withQueryParam("titles", equalTo("Victor_Hugo|Julius_Caesar|Émile_Zola"))
                 .withQueryParam("redirects", equalTo("1"))
                 .withQueryParam("maxlag", equalTo("5"))
                 .withQueryParam("format", equalTo("json"))
@@ -116,10 +123,41 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
     }
 
     @Test
+    fun `asks a Wikipedia edition for the revisions of up to 50 pages, through redirects, leaving out missing ones`() {
+        server.stubFor(
+            get(wikipedia).willReturn(
+                aResponse().withHeader("Content-Type", "application/json")
+                    .withBodyFile("wikipedia/en-info-sesostris-iii-amenemhat-iii-and-a-missing-page.json"),
+            ),
+        )
+
+        val revisions = wikimedia.pageRevisions("en", listOf("Sesostris III", "Amenemhat_III", "No such page for Who Lived When"))
+
+        // Sesostris III redirects to Senusret III.
+        assertEquals(mapOf("Sesostris III" to 1377432851L, "Amenemhat_III" to 1378375224L), revisions)
+        server.verify(
+            getRequestedFor(wikipedia)
+                .withQueryParam("action", equalTo("query"))
+                .withQueryParam("prop", equalTo("info"))
+                .withQueryParam("titles", equalTo("Sesostris III|Amenemhat_III|No such page for Who Lived When"))
+                .withQueryParam("redirects", equalTo("1"))
+                .withQueryParam("maxlag", equalTo("5")),
+        )
+    }
+
+    @Test
+    fun `an answer cut short is refused`() {
+        server.stubFor(get(wikipedia).willReturn(okJson("""{"continue":{"excontinue":20,"continue":"||"},"query":{"pages":[]}}""")))
+
+        assertThrows<WikimediaException> { threePages() }
+    }
+
+    @Test
     fun `batches beyond the APIs' limits are refused before any request`() {
         assertThrows<IllegalArgumentException> { wikimedia.entities(List(51) { "Q${it + 1}" }, listOf("info"), listOf("en"), listOf("enwiki")) }
         assertThrows<IllegalArgumentException> { wikimedia.entities(emptyList(), listOf("info"), listOf("en"), listOf("enwiki")) }
         assertThrows<IllegalArgumentException> { wikimedia.pages("en", List(21) { "Page $it" }) }
+        assertThrows<IllegalArgumentException> { wikimedia.pageRevisions("en", List(51) { "Page $it" }) }
 
         assertTrue(server.allServeEvents.isEmpty())
     }
@@ -183,7 +221,7 @@ class WikimediaClientTests(@Autowired private val wikimedia: WikimediaClient) {
         }
         server.stubFor(get(wikipedia).inScenario("lost").whenScenarioStateIs("lost 2").willReturn(pages))
 
-        assertEquals(3, threePages().path("query").path("pages").size())
+        assertEquals(3, threePages().size)
         assertEquals(3, server.allServeEvents.size)
     }
 

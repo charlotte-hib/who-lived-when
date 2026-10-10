@@ -78,6 +78,7 @@ app:
       - until: 1900
         years: 10
     languages: [en, fr, ja, mul]
+    # The Wikipedia articles kept, and fetched last: their intros, page images and URLs.
     sites: [enwiki, frwiki]
     # Places of birth, death, work and residence, and occupations.
     linked-properties: [P19, P20, P937, P551, P106]

@@ -122,26 +122,52 @@ class WikimediaClient(
     }
 
     /**
-     * The lead as plain text, the thumbnail and the latest revision of Wikipedia pages, [MAX_PAGES] at most, in the
-     * [language] edition (`action=query`). Returns the whole answer, pages under `query.pages`, following redirects.
+     * The intro as plain text, the page image (its thumbnail and its file name on Commons), the URL and the latest
+     * revision of Wikipedia pages, [MAX_PAGES] at most, in the [language] edition (`action=query`). Returns each page
+     * as it came, by the title asked for, following redirects. Pages that do not exist are left out.
      */
-    fun pages(language: String, titles: List<String>): JsonNode {
+    fun pages(language: String, titles: List<String>): Map<String, JsonNode> {
         require(titles.size in 1..MAX_PAGES) { "Between 1 and $MAX_PAGES titles a request, not ${titles.size}" }
-        return get(
-            properties.wikipediaApi,
-            mapOf("language" to language),
+        return query(
+            language,
+            titles,
             mapOf(
-                "action" to "query",
                 "prop" to "extracts|pageimages|info",
                 "exintro" to "1",
                 "explaintext" to "1",
-                "piprop" to "thumbnail",
+                "piprop" to "thumbnail|name",
                 "pithumbsize" to "400",
-                "titles" to titles.joinToString("|"),
-                "redirects" to "1",
-                "formatversion" to "2",
+                "inprop" to "url",
             ),
         )
+    }
+
+    /**
+     * The latest revision of Wikipedia pages, [MAX_TITLES] at most, in the [language] edition, by the title asked for,
+     * following redirects. Pages that do not exist are left out.
+     */
+    fun pageRevisions(language: String, titles: List<String>): Map<String, Long> {
+        require(titles.size in 1..MAX_TITLES) { "Between 1 and $MAX_TITLES titles a request, not ${titles.size}" }
+        return query(language, titles, mapOf("prop" to "info")).mapValues { it.value.path("lastrevid").asLong() }
+    }
+
+    private fun query(language: String, titles: List<String>, props: Map<String, String>): Map<String, JsonNode> {
+        val answer = get(
+            properties.wikipediaApi,
+            mapOf("language" to language),
+            mapOf("action" to "query") + props + mapOf("titles" to titles.joinToString("|"), "redirects" to "1", "formatversion" to "2"),
+        )
+        // More pages than a module answers for at once: never with these batch sizes, and the rest would be missing.
+        if (answer.has("continue")) throw WikimediaException("Wikipedia ($language) answered only in part: ${answer.path("continue")}")
+        val query = answer.path("query")
+        // The title asked for, as Wikipedia writes it (underscores to spaces, a capital first), then where it redirects.
+        val normalized = query.path("normalized").values().associate { it.path("from").asString() to it.path("to").asString() }
+        val redirects = query.path("redirects").values().associate { it.path("from").asString() to it.path("to").asString() }
+        val pages = query.path("pages").values().filterNot { it.has("missing") || it.has("invalid") }.associateBy { it.path("title").asString() }
+        return titles.mapNotNull { title ->
+            val normal = normalized[title] ?: title
+            pages[redirects[normal] ?: normal]?.let { title to it }
+        }.toMap()
     }
 
     /**
@@ -196,7 +222,9 @@ class WikimediaClient(
         /** The name of the Resilience4j rate limiter, bulkhead and retry every call to Wikimedia shares. */
         const val PACE = "wikimedia"
         const val MAX_ENTITIES = 50
+        /** Wikipedia's intros come 20 pages a request at most. */
         const val MAX_PAGES = 20
+        const val MAX_TITLES = 50
         private const val MAX_ERROR_BYTES = 4096
         /** Bad gateway, unavailable, gateway timeout: Wikimedia cannot answer for now. */
         private val UNAVAILABLE = setOf(HttpStatus.BAD_GATEWAY, HttpStatus.SERVICE_UNAVAILABLE, HttpStatus.GATEWAY_TIMEOUT)
