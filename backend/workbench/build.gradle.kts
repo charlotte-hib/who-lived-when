@@ -23,6 +23,9 @@ dependencies {
 	implementation("io.github.resilience4j:resilience4j-spring-boot4:2.4.0")
 	// The workbench's own schema, raw, migrated apart from the release's (RawStore).
 	implementation("org.flywaydb:flyway-core")
+	// Which country a place lies in today: Natural Earth's borders in GeoJSON, read and searched with JTS.
+	implementation("org.locationtech.jts:jts-core:1.20.0")
+	implementation("org.locationtech.jts.io:jts-io-common:1.20.0")
 	// Postgres on ./gradlew :workbench:bootRun: starts the db service of compose.workbench.yaml and connects to it.
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")

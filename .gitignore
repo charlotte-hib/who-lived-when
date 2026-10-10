@@ -19,5 +19,7 @@ http/http-client.private.env.json
 e2e/node_modules/
 e2e/test-results/
 e2e/playwright-report/
+# Natural Earth's borders, downloaded by the workbench's first mapping run (app.natural-earth).
+/backend/natural-earth/
 # Design notes, kept on one machine.
 /docs/design/

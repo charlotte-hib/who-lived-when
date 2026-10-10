@@ -21,7 +21,12 @@ class DatasetStore(dataSource: DataSource) {
     }
 
     fun clear() {
-        jdbc.execute("truncate dataset.person, dataset.person_occupation, dataset.person_place, dataset.person_flag, dataset.occupation, dataset.occupation_parent")
+        jdbc.execute(
+            """
+            truncate dataset.person, dataset.person_occupation, dataset.person_place, dataset.person_flag,
+                dataset.occupation, dataset.occupation_parent, dataset.place, dataset.place_country, dataset.place_flag
+            """.trimIndent(),
+        )
     }
 
     fun savePeople(people: List<PersonRow>) {
@@ -56,6 +61,29 @@ class DatasetStore(dataSource: DataSource) {
         jdbc.batchUpdate(
             "insert into dataset.person_flag (person, reason, flag) values (?, ?, ?)",
             people.flatMap { person -> person.flags.map { arrayOf<Any?>(person.qid, it.name, it.flag) } },
+        )
+    }
+
+    fun savePlaces(places: List<PlaceRow>) {
+        jdbc.batchUpdate(
+            """
+            insert into dataset.place (qid, label, label_fr, latitude, longitude, coordinates_country, disputed_area)
+            values (?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            places.map {
+                arrayOf<Any?>(
+                    it.qid, it.label, it.labelFr, it.coordinates?.latitude, it.coordinates?.longitude, it.coordinatesCountry,
+                    it.disputedArea,
+                )
+            },
+        )
+        jdbc.batchUpdate(
+            "insert into dataset.place_country (place, position, country, iso) values (?, ?, ?, ?)",
+            places.flatMap { place -> place.countries.mapIndexed { i, it -> arrayOf<Any?>(place.qid, i, it.country, it.iso) } },
+        )
+        jdbc.batchUpdate(
+            "insert into dataset.place_flag (place, reason, flag) values (?, ?, ?)",
+            places.flatMap { place -> place.flags.map { arrayOf<Any?>(place.qid, it.name, it.flag) } },
         )
     }
 

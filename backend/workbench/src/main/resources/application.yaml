@@ -80,6 +80,19 @@ app:
     # Set to true to map what the last import fetched to the fetched dataset's rows (schema dataset), then exit
     # (DatasetMappingJob).
     map: false
+  # Natural Earth's public-domain borders, de facto, at 1:10m: which country a place lies in today, and whether it lies
+  # in a disputed area. Downloaded by the first mapping run, kept in dir (under backend/, ignored by Git).
+  natural-earth:
+    dir: natural-earth
+    countries:
+      url: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries.geojson
+      sha256: 239eec57ac17f100a11e2536cffc56752c318b50ae765b0918ff7aab4ce8f255
+    disputed-areas:
+      url: https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_disputed_areas.geojson
+      sha256: 9cafef8b7dfb6b164dc58f218f981f4ace9f716f6c03795d4c62d1ac9f3d50f5
+    # At 1:10m, the borders cut off harbours and small islands: a place outside every country takes the nearest one
+    # within this distance. Measured on 6,159 places on 2026-10-10: 124 of the 149 outside were within 5 km.
+    coast-km: 5
 
 # One pace for every call to Wikimedia (WikimediaClient), well under its 200 requests a minute for a client with a
 # User-Agent, and one request at a time, as its robot policy asks of the Action API.
