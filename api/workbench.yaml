@@ -16,7 +16,7 @@ info:
     url: https://github.com/charlotte-hib/who-lived-when/blob/main/LICENSE
 servers:
   - url: http://localhost:8090
-    description: The workbench on the curator's Mac.
+    description: The workbench, on the curator's computer.
 security:
   - token: []
 tags:

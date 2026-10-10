@@ -4,5 +4,5 @@ extends:
 rules:
   # The list endpoints (moments, regions, eras) take no input, so no request of theirs is a client error.
   operation-4xx-response: off
-  # The workbench's API (workbench.yaml) only ever runs on the curator's Mac, at localhost.
+  # The workbench's API (workbench.yaml) only ever runs on the curator's computer, at localhost.
   no-server-example.com: off

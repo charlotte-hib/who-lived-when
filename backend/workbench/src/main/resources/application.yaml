@@ -29,7 +29,7 @@ spring:
       connect-timeout: 5s
       read-timeout: 5s
 
-# On the curator's Mac only, never on the network: wb and curate call it there.
+# On the curator's computer only, never on the network: wb and curate call it there.
 server:
   address: 127.0.0.1
   port: 8090
