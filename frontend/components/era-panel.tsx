@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { DetailPanel } from "@/components/detail-panel";
 import { DoorCard } from "@/components/door-card";
 import { PersonChip } from "@/components/person-chip";
@@ -9,6 +9,7 @@ import { fetchEra } from "@/lib/api-browser";
 import { DOMAIN_ORDER, DOMAINS } from "@/lib/domains";
 import { hasStory } from "@/lib/moments";
 import type { Era, EraDetail } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { formatYear } from "@/lib/years";
 
 /** The details of an era, fetched the first time its panel opens. */
@@ -28,17 +29,24 @@ type Props = {
   era: Era;
   /** The moment the panel is opened from, shown as "You are here" among the era's moments. */
   momentId?: string;
+  /** What the link reads, the era's name by default. */
+  children?: ReactNode;
+  className?: string;
 };
 
 /** Who governed, as a link that opens the era in a panel: its moments to step into, and its people. */
-export function EraButton({ era, momentId }: Props) {
+export function EraButton({ era, momentId, children, className }: Props) {
   const [open, setOpen] = useState(false);
   const detail = useEraDetail(era.id, open);
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="text-foreground underline decoration-muted-foreground/50 underline-offset-4 hover:decoration-lamp">
-        {era.label}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn("text-foreground underline decoration-muted-foreground/50 underline-offset-4 hover:decoration-lamp", className)}
+      >
+        {children ?? era.label}
       </button>
       <DetailPanel open={open} onOpenChange={setOpen} kicker="Who governs">
         <article className="grid gap-8">
