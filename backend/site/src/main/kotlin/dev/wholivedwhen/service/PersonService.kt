@@ -60,6 +60,7 @@ class PersonService(
                 person,
                 eras.findByRegionCodeOrderByStartYearAscIdAsc(region),
                 events.findByEraRegionCodeAndYearBetweenOrderByYearAscIdAsc(region, person.birthYear, end),
+                mapper::toDto,
             ),
             connections = connectionsOf(person),
             aroundPeople = people.findAliveBetween(region, ref, ref).filter { it.slug != slug }.map(mapper::toDto),

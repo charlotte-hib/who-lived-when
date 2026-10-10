@@ -34,6 +34,9 @@ class PersonApiTests(@Autowired private val mockMvc: MockMvc) {
     fun `their life in their time lists regimes and events with their age`() {
         mockMvc.get("/api/people/emile-zola").andExpect {
             jsonPath("$.lifeline[0].text") { value("Born under the July Monarchy") }
+            jsonPath("$.lifeline[0].era.label") { value("July Monarchy") }
+            jsonPath("$.lifeline[?(@.text == 'The Third Republic begins')].era.id") { value("fr-third-republic") }
+            jsonPath("$.lifeline[?(@.kind == 'EVENT' && @.era != null)]") { isEmpty() }
             jsonPath("$.lifeline[?(@.text == 'The Third Republic begins')].age") { value(30) }
             jsonPath("$.lifeline[?(@.kind == 'OWN_EVENT' && @.year == 1898)].role") { value("author") }
             jsonPath("$.lifeline[-1].kind") { value("DEATH") }

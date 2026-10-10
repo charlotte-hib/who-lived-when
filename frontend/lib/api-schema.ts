@@ -419,6 +419,8 @@ export interface components {
             kind: components["schemas"]["LifeLineKind"];
             text: string;
             role: string | null;
+            /** @description The regime a BIRTH line was born under or an ERA line begins, to open; none on other lines. */
+            era: components["schemas"]["Era"] | null;
         };
         /** @description Someone a person was linked to, how (a pair like "tea master and lord", or their role in a shared event), when, and the source. */
         Connection: {

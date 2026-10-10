@@ -5,6 +5,7 @@ import dev.wholivedwhen.domain.Event
 import dev.wholivedwhen.domain.Person
 import dev.wholivedwhen.support.currentYear
 import dev.wholivedwhen.support.yearsBetween
+import dev.wholivedwhen.api.model.EraDto
 import dev.wholivedwhen.api.model.LifeLineDto
 import dev.wholivedwhen.api.model.LifeLineKindDto
 
@@ -14,18 +15,19 @@ private const val MAX_BACKGROUND_EVENTS = 4
 /**
  * "Their life in their time": who governed when they were born, each change of regime during their life,
  * the documented events around them and their own, each with their age. Built only from dated records.
+ * The birth and regime lines carry their era, so the page can open it.
  */
-fun lifeInTime(person: Person, regionEras: List<Era>, regionEvents: List<Event>): List<LifeLineDto> {
+fun lifeInTime(person: Person, regionEras: List<Era>, regionEvents: List<Event>, toDto: (Era) -> EraDto): List<LifeLineDto> {
     val end = person.deathYear ?: currentYear()
     val age = { year: Int -> yearsBetween(person.birthYear, year) }
     val lines = mutableListOf<LifeLineDto>()
 
     val bornUnder = regionEras.lastOrNull { person.birthYear in it.startYear..it.endYear }
-    lines += LifeLineDto(person.birthYear, null, LifeLineKindDto.BIRTH, "Born" + (bornUnder?.let { " ${regimePhrase(it.label)}" } ?: ""), null)
+    lines += LifeLineDto(person.birthYear, null, LifeLineKindDto.BIRTH, "Born" + (bornUnder?.let { " ${regimePhrase(it.label)}" } ?: ""), null, bornUnder?.let(toDto))
 
     regionEras
         .filter { it.startYear > person.birthYear && it.startYear <= end }
-        .forEach { lines += LifeLineDto(it.startYear, age(it.startYear), LifeLineKindDto.ERA, "${withArticle(it.label)} begins", null) }
+        .forEach { lines += LifeLineDto(it.startYear, age(it.startYear), LifeLineKindDto.ERA, "${withArticle(it.label)} begins", null, toDto(it)) }
 
     var background = 0
     regionEvents
@@ -34,12 +36,12 @@ fun lifeInTime(person: Person, regionEras: List<Era>, regionEvents: List<Event>)
         .forEach { event ->
             val own = event.participants.firstOrNull { it.person.slug == person.slug }
             when {
-                own != null -> lines += LifeLineDto(event.year, age(event.year), LifeLineKindDto.OWN_EVENT, event.title, own.role)
-                background++ < MAX_BACKGROUND_EVENTS -> lines += LifeLineDto(event.year, age(event.year), LifeLineKindDto.EVENT, event.title, null)
+                own != null -> lines += LifeLineDto(event.year, age(event.year), LifeLineKindDto.OWN_EVENT, event.title, own.role, null)
+                background++ < MAX_BACKGROUND_EVENTS -> lines += LifeLineDto(event.year, age(event.year), LifeLineKindDto.EVENT, event.title, null, null)
             }
         }
 
-    person.deathYear?.let { lines += LifeLineDto(it, age(it), LifeLineKindDto.DEATH, "Dies", null) }
+    person.deathYear?.let { lines += LifeLineDto(it, age(it), LifeLineKindDto.DEATH, "Dies", null, null) }
     return lines.sortedWith(compareBy({ it.year }, { it.kind.ordinal }))
 }
 
